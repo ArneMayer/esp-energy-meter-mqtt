@@ -104,7 +104,7 @@ void setup() {
   Serial.begin(74880);
   softSerial.begin(9600, SWSERIAL_8N1);
 
-  setup_wifi();
+  //setup_wifi();
 
   // Setup modbus
   mb1.begin(&softSerial, D4);  // Specify RE_DE control pin
@@ -275,10 +275,11 @@ void loop() {
   }
 
   // Ensure Connection
-  if (mqtt_enabled) {
-    reconnect();
-  }
+  //if (mqtt_enabled) {
+  //  reconnect();
+  //}
 
+  /*
   for (int i = 0; i < number_of_meters; i++) {
     String energy_meter_route = topic + (i+1) + String("/");
     //debug_print("Meter Data #"); debug_println(i+1);
@@ -308,4 +309,5 @@ void loop() {
   unsigned long time_to_update = current_time - last_update_time;
   last_update_time = current_time;
   client.publish((topic + "time_to_update").c_str(), String(time_to_update).c_str(), true);
+  */
 }
