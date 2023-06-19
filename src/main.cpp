@@ -28,9 +28,21 @@ uint16_t* buffer;
 bool mqtt_enabled = true;
 
 unsigned long last_update_time = 0;
+String deviceId;
+String topic;
+
+String mac_string() {
+    uint8_t mac[6];
+    WiFi.macAddress(mac);
+    char mac_string[6 * 2 + 1] = {0};
+    snprintf(mac_string, 6 * 2 + 1, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return String(mac_string);
+}
 
 void setup_wifi() {
-  String deviceId = WiFi.macAddress();
+  deviceId = mac_string();
+  topic = String("energy-" + deviceId + "/");
+  hostname = String("energy-" + deviceId);
   Serial.println("Device ID: ");
   Serial.println(deviceId);
 
@@ -268,7 +280,7 @@ void loop() {
   }
 
   for (int i = 0; i < number_of_meters; i++) {
-    String energy_meter_route = String("energy/") + (i+1) + String("/");
+    String energy_meter_route = topic + (i+1) + String("/");
     //debug_print("Meter Data #"); debug_println(i+1);
     for (int j = 0; j < energy_meter->number_of_fields; j++) {
       if(energy_meter->field_enabled[j]) {
@@ -295,5 +307,5 @@ void loop() {
   unsigned long current_time = millis();
   unsigned long time_to_update = current_time - last_update_time;
   last_update_time = current_time;
-  client.publish("energy/time_to_update", String(time_to_update).c_str(), true);
+  client.publish((topic + "time_to_update").c_str(), String(time_to_update).c_str(), true);
 }
