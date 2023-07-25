@@ -102,7 +102,7 @@ void wait_for_result() {
 
 void setup() {
   Serial.begin(74880);
-  softSerial.begin(9600, SWSERIAL_8N1);
+  softSerial.begin(baudrate, SWSERIAL_8N1);
 
   setup_wifi();
 
@@ -266,11 +266,12 @@ String get_value_as_string(uint16_t* data, FieldType type, float field_factor) {
 
 void loop() {
   // Read Modbus Registers
-  for(int i = 0; i < number_of_meters; i++) {
+  for(uint8_t i = 0; i < number_of_meters; i++) {
     for(const auto& run : energy_meter->run_list) {
       uint16_t buffer_address = (i*data_per_meter + run.data_map);
       uint16_t* data = buffer + buffer_address;
-      read_and_get(energy_meter->register_type, i+1, run.start_address, run.number_of_words, data);
+      uint8_t meter_id = modbus_id + i;
+      read_and_get(energy_meter->register_type, meter_id, run.start_address, run.number_of_words, data);
     }
   }
 
@@ -280,7 +281,8 @@ void loop() {
   }
 
   for (int i = 0; i < number_of_meters; i++) {
-    String energy_meter_route = topic + (i+1) + String("/");
+    uint32_t meter_id = modbus_id + i;
+    String energy_meter_route = topic + String(meter_id) + "/";
     //debug_print("Meter Data #"); debug_println(i+1);
     for (int j = 0; j < energy_meter->number_of_fields; j++) {
       if(energy_meter->field_enabled[j]) {
