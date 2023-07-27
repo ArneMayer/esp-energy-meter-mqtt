@@ -56,8 +56,8 @@ public:
         field_name[i] = "total_system_phase_angle"; field_address[i] = 0x0042; field_description[i] = "Total System Phase Angle"; field_unit[i] = "°"; i++;
 
         field_name[i] = "frequency";            field_address[i] = 0x0046; field_description[i] = "Frequency";            field_unit[i] = "Hz"; i++;
-        field_name[i] = "import_active_energy"; field_address[i] = 0x0048; field_description[i] = "Import Active Energy"; field_unit[i] = "kWh"; i++;
-        field_name[i] = "export_active_energy"; field_address[i] = 0x004A; field_description[i] = "Export Active Energy"; field_unit[i] = "kWh"; i++;
+        field_name[i] = "import_active_energy_since_last_reset"; field_address[i] = 0x0048; field_description[i] = "Import Active Energy Since Last Reset"; field_unit[i] = "kWh"; i++;
+        field_name[i] = "export_active_energy_since_last_reset"; field_address[i] = 0x004A; field_description[i] = "Export Active Energy Since Last Reset"; field_unit[i] = "kWh"; i++;
 
         field_name[i] = "import_varh_since_last_reset"; field_address[i] = 0x004C; field_description[i] = "Import VArh since last reset"; field_unit[i] = "kVArh/MVArh"; i++;
         field_name[i] = "export_varh_since_last_reset"; field_address[i] = 0x004E; field_description[i] = "Export VArh since last reset"; field_unit[i] = "kVArh/MVArh"; i++;
@@ -104,8 +104,8 @@ public:
 
         field_name[i] = "avg_line_to_line_volts_thd"; field_address[i] = 0x0154; field_description[i] = "Average line to line volts THD"; field_description[i] = "%"; i++;
   
-        field_name[i] = "total_active_energy";   field_address[i] = 0x0156; field_description[i] = "Total Active Energy"; field_unit[i] = "kWh"; i++;
-        field_name[i] = "total_reactive_energy"; field_address[i] = 0x0158; field_description[i] = "Total Reactive Energy"; field_unit[i] = "kVArh"; i++;
+        field_name[i] = "total_active_energy_import_plus_export";   field_address[i] = 0x0156; field_description[i] = "Total Active Energy (Import + Export)"; field_unit[i] = "kWh"; i++;
+        field_name[i] = "total_reactive_energy_import_plus_export"; field_address[i] = 0x0158; field_description[i] = "Total Reactive Energy (import + Export)"; field_unit[i] = "kVArh"; i++;
 
         field_name[i] = "l1_import_energy"; field_address[i] = 0x015a; field_description[i] = "L1 import kwh"; field_unit[i] = "kwh"; i++;
         field_name[i] = "l2_import_energy"; field_address[i] = 0x015c; field_description[i] = "L2 import kwh"; field_unit[i] = "kwh"; i++;
@@ -126,7 +126,7 @@ public:
         field_name[i] = "l2_total_kvarh"; field_address[i] = 0x017a; field_description[i] = "L2 total kvarh"; field_unit[i] = "kvarh"; i++;
         field_name[i] = "l3_total_kvarh"; field_address[i] = 0x017c; field_description[i] = "L3 total kvarh"; field_unit[i] = "kvarh"; i++;
 
-        field_name[i] = "net_kwh";   field_address[i] = 0x018C; field_description[i] = "Net Energy";                field_unit[i] = "kWh"; i++;
+        field_name[i] = "net_kwh";   field_address[i] = 0x018C; field_description[i] = "Net Energy (Import-Export)";                field_unit[i] = "kWh"; i++;
         field_name[i] = "net_kvarh"; field_address[i] = 0x018e; field_description[i] = "Net kVArh (Import-Export)"; field_unit[i] = "kvarh"; i++;
     }
 };
