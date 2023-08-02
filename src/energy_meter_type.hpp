@@ -1,11 +1,17 @@
 #pragma once
 
+#include <WString.h>
+
 enum class EnergyMeterType {
     SDM72D_M_V1,
     SDM72D_M_V2,
     DTS238_7,
-    SDM630_V2
+    SDM630_V2,
+    UNKNOWN
 };
+
+String meter_type_to_string(EnergyMeterType type);
+EnergyMeterType string_to_meter_type(String type);
 
 enum class FieldType {
     float32,

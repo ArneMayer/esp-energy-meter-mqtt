@@ -3,17 +3,19 @@
 #include <SoftwareSerial.h>
 #include <PubSubClient.h>
 #include <ModbusRTU.h>
+#include "web_config.hpp"
+#include "util.hpp"
 
 #include "logging.hpp"
-#include "config.h"
+//#include "config.h"
 #include "energy_meter_config.hpp"
 #include "meters/sdm72d-m-v1.hpp"
 #include "meters/sdm72d-m-v2.hpp"
 #include "meters/dts238-7.hpp"
 #include "meters/sdm630-v2.hpp"
 
-WiFiClient wifiClient;
-PubSubClient client(mqtt_broker, mqtt_port, wifiClient);
+std::shared_ptr<WiFiClient> wifiClient;
+std::shared_ptr<PubSubClient> client;
 String hostname = "energy-meter-rs485";
 
 ModbusRTU mb1;
@@ -30,14 +32,17 @@ bool mqtt_enabled = true;
 unsigned long last_update_time = 0;
 String deviceId;
 String topic;
+bool led_state = false;
 
-String mac_string() {
-    uint8_t mac[6];
-    WiFi.macAddress(mac);
-    char mac_string[6 * 2 + 1] = {0};
-    snprintf(mac_string, 6 * 2 + 1, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    return String(mac_string);
-}
+// Config Values
+String mqtt_broker;
+String mqtt_user;
+String mqtt_password;
+uint16_t mqtt_port;
+EnergyMeterType meter_type;
+uint8_t modbus_id;
+uint8_t number_of_meters;
+uint16_t baudrate;
 
 void setup_wifi() {
   deviceId = mac_string();
@@ -46,9 +51,10 @@ void setup_wifi() {
   Serial.println("Device ID: ");
   Serial.println(deviceId);
 
+  /*
   WiFi.mode(WIFI_STA);
   WiFi.hostname(hostname);
-  WiFi.begin(wifi_ssid, wifi_pw);
+  WiFi.begin(config_wifi_ssid(), config_wifi_pw());
   
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -59,6 +65,7 @@ void setup_wifi() {
   Serial.println("WiFi connected");  
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+  */
 }
 
 float get_float_reversed(uint16_t* data) {
@@ -102,35 +109,58 @@ void wait_for_result() {
 
 void setup() {
   Serial.begin(74880);
-  softSerial.begin(9600, SWSERIAL_8N1);
+  web_config_setup();
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  mqtt_broker = config_mqtt_broker();
+  mqtt_user = config_mqtt_user();
+  mqtt_password = config_mqtt_password();
+  mqtt_port = config_mqtt_port();
+
+  meter_type = config_meter_type();
+  modbus_id = config_modbus_id();
+  number_of_meters = config_number_of_meters();
+  baudrate = config_baudrate();
+
+  Serial.println("MQTT Broker: " + mqtt_broker);
+  Serial.println("MQTT User: " +   mqtt_user);
+  Serial.println("MQTT Password: " + mqtt_password);
+  Serial.println("MQTT Port: " + String(mqtt_port));
+  
+  Serial.println("Meter Type: " + meter_type_to_string(meter_type));
+  Serial.println("Modbus ID: " + String(modbus_id));
+  Serial.println("Number of Meters: " + String(number_of_meters));
+  Serial.println("Baudrate: " + String(baudrate));
+
 
   setup_wifi();
 
+  // Setup MQTT
+
+
   // Setup modbus
-  mb1.begin(&softSerial, D4);  // Specify RE_DE control pin
+  softSerial.begin(baudrate, SWSERIAL_8N1);
+  mb1.begin(&softSerial);
   mb1.master();
 
   // Setup Configuration
   if(meter_type == EnergyMeterType::SDM72D_M_V2) {
-    Serial.println("Configured Energy Meter Type: SDM72D_M_V2");
     energy_meter = new Sdm72dmv2();
   } 
   else if (meter_type == EnergyMeterType::SDM72D_M_V1) {
-    Serial.println("Configured Energy Meter Type: SDM72D_M_V1");
     energy_meter = new Sdm72dmv1();
   } 
   else if (meter_type == EnergyMeterType::DTS238_7) {
-    Serial.println("Configured Energy Meter Type: DTS238_7");
     energy_meter = new Dts238_7();
   }
   else if (meter_type == EnergyMeterType::SDM630_V2) {
-    Serial.println("Configured Energy Meter Type: SDM630_V2");
     energy_meter = new Sdm630v2();
   }
   else {
     Serial.println("Unknown Configuration, defaulting to SDM72D_M_V1");
     energy_meter = new Sdm72dmv1();
   }
+
   energy_meter->setup();
 
   Serial.println("Allocate Buffer");
@@ -144,6 +174,8 @@ void setup() {
     buffer[i] = 0;
   }
 
+  Serial.println();
+  Serial.println("Meter Information:");
   Serial.print("number_of_fields: "); Serial.println(energy_meter->number_of_fields);  
   Serial.print("data per meter: "); Serial.println(data_per_meter);
   Serial.print("number of meters: "); Serial.println(number_of_meters);
@@ -208,13 +240,9 @@ void waitForResult() {
 
 void read_and_get(RegisterType reg_type, uint16_t meter_id, uint16_t address, uint16_t num_regs, uint16_t* data) {
   if (reg_type == RegisterType::Ireg) {
-    //mb1.pullIreg(meter_id, address, address + num_regs - 1, num_regs, cbWrite);
-    //waitForResult();
     mb1.readIreg(meter_id, address, data, num_regs, cbWrite);
     waitForResult();
   } else if (reg_type == RegisterType::Hreg) {
-    //mb1.pullHreg(meter_id, address, address + num_regs - 1, num_regs, cbWrite);
-    //waitForResult();
     mb1.readHreg(meter_id, address, data, num_regs, cbWrite);
     waitForResult();
   }
@@ -222,22 +250,39 @@ void read_and_get(RegisterType reg_type, uint16_t meter_id, uint16_t address, ui
 
 void reconnect()
 {
-  while (!client.connected())
+  while (true) {
+    led_state = (millis() / 100) % 2 == 0;
+    digitalWrite(LED_BUILTIN, led_state ? HIGH : LOW);
+    web_config_loop();
+  }
+
+  if (client == nullptr) {
+    wifiClient = std::make_shared<WiFiClient>();
+    client = std::make_shared<PubSubClient>(mqtt_broker.c_str(), mqtt_port, *wifiClient);
+  }
+
+  while (!client->connected())
   {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect(hostname.c_str(), mqtt_user, mqtt_password, (hostname + "/available").c_str(), 0, true, "offline"))
+    if (client->connect(hostname.c_str(), mqtt_user.c_str(), mqtt_password.c_str(), (hostname + "/available").c_str(), 0, true, "offline"))
     {
       Serial.println("connected");
-      //client.publish((hostname + "/available").c_str(), "online", true);
+      client->publish((hostname + "/available").c_str(), "online", true);
+      led_state = false;
+      digitalWrite(LED_BUILTIN, led_state ? HIGH : LOW);
     }
     else
     {
       Serial.print("failed, rc=");
-      Serial.print(client.state());
+      Serial.print(client->state());
 
-      Serial.println(" try again in 3 seconds");
-      delay(3000);
-      return;
+      Serial.println(" try again in 5 seconds");
+      auto start_time = millis();
+      while (millis() - start_time < 5000) {
+        led_state = (millis() / 100) % 2 == 0;
+        digitalWrite(LED_BUILTIN, led_state ? HIGH : LOW);
+        web_config_loop();
+      }
     }
   }
 }
@@ -265,6 +310,11 @@ String get_value_as_string(uint16_t* data, FieldType type, float field_factor) {
 }
 
 void loop() {
+  // Ensure Connection
+  if (mqtt_enabled) {
+    reconnect();
+  }
+
   // Read Modbus Registers
   for(int i = 0; i < number_of_meters; i++) {
     for(const auto& run : energy_meter->run_list) {
@@ -272,11 +322,6 @@ void loop() {
       uint16_t* data = buffer + buffer_address;
       read_and_get(energy_meter->register_type, i+1, run.start_address, run.number_of_words, data);
     }
-  }
-
-  // Ensure Connection
-  if (mqtt_enabled) {
-    reconnect();
   }
 
   for (int i = 0; i < number_of_meters; i++) {
@@ -296,7 +341,7 @@ void loop() {
         // Publish value to MQTT
         if (mqtt_enabled) {
           String route = energy_meter_route + energy_meter->field_name[j];
-          client.publish(route.c_str(), value.c_str(), true);
+          client->publish(route.c_str(), value.c_str(), true);
         }
       }
     }
@@ -307,5 +352,5 @@ void loop() {
   unsigned long current_time = millis();
   unsigned long time_to_update = current_time - last_update_time;
   last_update_time = current_time;
-  client.publish((topic + "time_to_update").c_str(), String(time_to_update).c_str(), true);
+  client->publish((topic + "time_to_update").c_str(), String(time_to_update).c_str(), true);
 }
