@@ -17,7 +17,7 @@ String wifiInitialApPassword = "";
 #define NUMBER_LEN 32
 
 // -- Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "v5"
+#define CONFIG_VERSION "v7"
 
 // -- When CONFIG_PIN is pulled to ground on startup, the Thing will use the initial
 //      password to buld an AP. (E.g. in case of lost password)
@@ -89,6 +89,8 @@ void web_config_setup() {
     iotWebConf->getApTimeoutParameter()->visible = false;
     iotWebConf->getThingNameParameter()->label = "Device Name";
 
+    iotWebConf->skipApStartup();
+
     iotWebConf->init();
 
     server.on("/", [] { iotWebConf->handleConfig(); });
@@ -107,6 +109,14 @@ bool formValidator(iotwebconf::WebRequestWrapper* webRequestWrapper) {
     return valid;
 }
 
+bool is_in_ap_mode() {
+    return iotWebConf->getState() == iotwebconf::NetworkState::ApMode;
+}
+
+bool is_in_network_mode() {
+    return iotWebConf->getState() == iotwebconf::NetworkState::Connecting || iotWebConf->getState() == iotwebconf::NetworkState::OnLine;
+}
+
 void web_config_loop() {
     iotWebConf->doLoop();
 }
@@ -115,13 +125,13 @@ bool config_updated() {
     return _new_config;
 }
 
-/*
 String config_wifi_ssid() {
+    return String(iotWebConf->getWifiSsidParameter()->valueBuffer);
 }
 
 String config_wifi_pw() {
+    return String(iotWebConf->getWifiPasswordParameter()->valueBuffer);
 }
-*/
 
 String config_mqtt_broker() {
     return String(mqtt_broker_config_value);

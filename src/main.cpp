@@ -122,21 +122,24 @@ void setup() {
   number_of_meters = config_number_of_meters();
   baudrate = config_baudrate();
 
+  Serial.println("Wifi SSID: " + config_wifi_ssid());
+  Serial.println("Wifi Password: " + config_wifi_pw());
+  Serial.println();
   Serial.println("MQTT Broker: " + mqtt_broker);
   Serial.println("MQTT User: " +   mqtt_user);
   Serial.println("MQTT Password: " + mqtt_password);
   Serial.println("MQTT Port: " + String(mqtt_port));
-  
+  Serial.println();
   Serial.println("Meter Type: " + meter_type_to_string(meter_type));
   Serial.println("Modbus ID: " + String(modbus_id));
   Serial.println("Number of Meters: " + String(number_of_meters));
   Serial.println("Baudrate: " + String(baudrate));
-
+  Serial.println();
 
   setup_wifi();
 
-  // Setup MQTT
-
+  wifiClient = std::make_shared<WiFiClient>();
+  client = std::make_shared<PubSubClient>(mqtt_broker.c_str(), mqtt_port, *wifiClient);
 
   // Setup modbus
   softSerial.begin(baudrate, SWSERIAL_8N1);
@@ -248,17 +251,33 @@ void read_and_get(RegisterType reg_type, uint16_t meter_id, uint16_t address, ui
   }
 }
 
-void reconnect()
-{
-  while (true) {
-    led_state = (millis() / 100) % 2 == 0;
-    digitalWrite(LED_BUILTIN, led_state ? HIGH : LOW);
+void reconfigure() {
+  /*
+  mqtt_broker = config_mqtt_broker();
+  mqtt_user = config_mqtt_user();
+  mqtt_password = config_mqtt_password();
+  mqtt_port = config_mqtt_port();
+
+  meter_type = config_meter_type();
+  modbus_id = config_modbus_id();
+  number_of_meters = config_number_of_meters();
+  baudrate = config_baudrate();
+
+  client = std::make_shared<PubSubClient>(mqtt_broker.c_str(), mqtt_port, *wifiClient);
+  */
+
+  auto restart_time = millis() + 5000;
+  while (millis() < restart_time) {
     web_config_loop();
   }
+  EspClass::restart();
+}
 
-  if (client == nullptr) {
-    wifiClient = std::make_shared<WiFiClient>();
-    client = std::make_shared<PubSubClient>(mqtt_broker.c_str(), mqtt_port, *wifiClient);
+void reconnect()
+{
+  web_config_loop();
+  if (config_updated()) {
+    reconfigure();
   }
 
   while (!client->connected())
@@ -278,10 +297,20 @@ void reconnect()
 
       Serial.println(" try again in 5 seconds");
       auto start_time = millis();
+      uint32_t blink_duration = 100;
       while (millis() - start_time < 5000) {
-        led_state = (millis() / 100) % 2 == 0;
+        if (is_in_ap_mode()) {
+          blink_duration = 100;
+        }
+        if (is_in_network_mode()) {
+          blink_duration = 50;
+        }
+        led_state = (millis() / blink_duration) % 2 == 0;
         digitalWrite(LED_BUILTIN, led_state ? HIGH : LOW);
         web_config_loop();
+        if (config_updated()) {
+          reconfigure();
+        }
       }
     }
   }

@@ -3,8 +3,11 @@
 #include <Arduino.h>
 #include "energy_meter_type.hpp"
 
-// String config_wifi_ssid();
-// String config_wifi_pw();
+bool is_in_ap_mode();
+bool is_in_network_mode();
+
+String config_wifi_ssid();
+String config_wifi_pw();
 
 String config_mqtt_broker();
 String config_mqtt_user();
