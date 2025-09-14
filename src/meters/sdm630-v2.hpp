@@ -2,131 +2,129 @@
 
 #include "energy_meter_config.hpp"
 
-#define NUM_FIELDS_SDM630 88
-
 class Sdm630v2 : public EnergyMeterConfig {
 public:
-    Sdm630v2() : EnergyMeterConfig(NUM_FIELDS_SDM630, RegisterType::Ireg) {
+    Sdm630v2() : EnergyMeterConfig(RegisterType::Ireg) {
         max_run_length = 20;
     }
 
+    void add_field(String name, uint16_t address, String description, String unit) {
+        EnergyMeterConfig::add_field(name, address, description, unit, 1.0f, FieldType::float32_reversed, true);
+    }
+
     virtual void setup_registers() override {
-        for(int i = 0; i < number_of_fields; i++) {
-            field_data_type[i] = FieldType::float32_reversed;
-            field_factor[i] = 1.0f;
-            field_enabled[i] = true;
-        }
+        add_field("phase1_voltage", 0x0000, "Phase 1 Voltage", "V");
+        add_field("phase2_voltage", 0x0002, "Phase 2 Voltage", "V");
+        add_field("phase3_voltage", 0x0004, "Phase 3 Voltage", "V");
 
-        size_t i = 0;
-        field_name[i] = "phase1_voltage"; field_address[i] = 0x0000; field_description[i] = "Phase 1 Voltage"; field_unit[i] = "V"; i++;
-        field_name[i] = "phase2_voltage"; field_address[i] = 0x0002; field_description[i] = "Phase 2 Voltage"; field_unit[i] = "V"; i++;
-        field_name[i] = "phase3_voltage"; field_address[i] = 0x0004; field_description[i] = "Phase 3 Voltage"; field_unit[i] = "V"; i++;
+        add_field("phase1_current", 0x0006, "Phase 1 Current", "A");
+        add_field("phase2_current", 0x0008, "Phase 2 Current", "A");
+        add_field("phase3_current", 0x000A, "Phase 3 Current", "A");
 
-        field_name[i] = "phase1_current"; field_address[i] = 0x0006; field_description[i] = "Phase 1 Current"; field_unit[i] = "A"; i++;
-        field_name[i] = "phase2_current"; field_address[i] = 0x0008; field_description[i] = "Phase 2 Current"; field_unit[i] = "A"; i++;
-        field_name[i] = "phase3_current"; field_address[i] = 0x000A; field_description[i] = "Phase 3 Current"; field_unit[i] = "A"; i++;
+        add_field("phase1_active_power", 0x000C, "Phase 1 Active Power", "W");
+        add_field("phase2_active_power", 0x000E, "Phase 2 Active Power", "W");
+        add_field("phase3_active_power", 0x0010, "Phase 3 Active Power", "W");
 
-        field_name[i] = "phase1_active_power"; field_address[i] = 0x000C; field_description[i] = "Phase 1 Active Power"; field_unit[i] = "W"; i++;
-        field_name[i] = "phase2_active_power"; field_address[i] = 0x000E; field_description[i] = "Phase 2 Active Power"; field_unit[i] = "W"; i++;
-        field_name[i] = "phase3_active_power"; field_address[i] = 0x0010; field_description[i] = "Phase 3 Active Power"; field_unit[i] = "W"; i++;
+        add_field("phase1_apparent_power", 0x0012, "Phase 1 Apparent Power", "W");
+        add_field("phase2_apparent_power", 0x0014, "Phase 2 Apparent Power", "W");
+        add_field("phase3_apparent_power", 0x0016, "Phase 3 Apparent Power", "W");
 
-        field_name[i] = "phase1_apparent_power";  field_address[i] = 0x0012; field_description[i] = "Phase 1 Apparent Power"; field_unit[i] = "W"; i++;
-        field_name[i] = "phase2_apparent_power"; field_address[i] = 0x0014; field_description[i] = "Phase 2 Apparent Power"; field_unit[i] = "W"; i++;
-        field_name[i] = "phase3_apparent_power"; field_address[i] = 0x0016; field_description[i] = "Phase 3 Apparent Power"; field_unit[i] = "W"; i++;
+        add_field("phase1_reactive_power", 0x0018, "Phase 1 Reactive Power", "W");
+        add_field("phase2_reactive_power", 0x001A, "Phase 2 Reactive Power", "W");
+        add_field("phase3_reactive_power", 0x001C, "Phase 3 Reactive Power", "W");
 
-        field_name[i] = "phase1_reactive_power"; field_address[i] = 0x0018; field_description[i] = "Phase 1 Reactive Power"; field_unit[i] = "W"; i++;
-        field_name[i] = "phase2_reactive_power"; field_address[i] = 0x001A; field_description[i] = "Phase 2 Reactive Power"; field_unit[i] = "W"; i++;
-        field_name[i] = "phase3_reactive_power"; field_address[i] = 0x001C; field_description[i] = "Phase 3 Reactive Power"; field_unit[i] = "W"; i++;
-        field_name[i] = "phase1_power_factor"; field_address[i] = 0x001E; field_description[i] = "Phase 1 Power Factor"; field_unit[i] = ""; i++;
-        field_name[i] = "phase2_power_factor"; field_address[i] = 0x0020; field_description[i] = "Phase 2 Power Factor"; field_unit[i] = ""; i++;
-        field_name[i] = "phase3_power_factor"; field_address[i] = 0x0022; field_description[i] = "Phase 3 Power Factor"; field_unit[i] = ""; i++;
+        add_field("phase1_power_factor", 0x001E, "Phase 1 Power Factor", "");
+        add_field("phase2_power_factor", 0x0020, "Phase 2 Power Factor", "");
+        add_field("phase3_power_factor", 0x0022, "Phase 3 Power Factor", "");
 
-        field_name[i] = "phase1_angle"; field_address[i] = 0x0024; field_description[i] = "Phase 1 Angle"; field_unit[i] = "°"; i++;
-        field_name[i] = "phase2_angle"; field_address[i] = 0x0026; field_description[i] = "Phase 2 Angle"; field_unit[i] = "°"; i++;
-        field_name[i] = "phase3_angle"; field_address[i] = 0x0028; field_description[i] = "Phase 3 Angle"; field_unit[i] = "°"; i++;
-        field_name[i] = "average_phase_voltage"; field_address[i] = 0x002A; field_description[i] = "Average Phase Voltage"; field_unit[i] = "V"; i++;
-        field_name[i] = "average_phase_current"; field_address[i] = 0x002E; field_description[i] = "Average Phase Current"; field_unit[i] = "A"; i++;
-        field_name[i] = "sum_of_phase_currents"; field_address[i] = 0x0030; field_description[i] = "Sum of Phase Currents"; field_unit[i] = "A"; i++;
+        add_field("phase1_angle", 0x0024, "Phase 1 Angle", "°");
+        add_field("phase2_angle", 0x0026, "Phase 2 Angle", "°");
+        add_field("phase3_angle", 0x0028, "Phase 3 Angle", "°");
 
-        field_name[i] = "total_system_power";        field_address[i] = 0x0034; field_description[i] = "Total System Power";        field_unit[i] = "W"; i++;
-        field_name[i] = "total_system_volt_amps";    field_address[i] = 0x0038; field_description[i] = "Total System Volt Amps";    field_unit[i] = "VA"; i++;
-        field_name[i] = "total_system_var";          field_address[i] = 0x003C; field_description[i] = "Total System VAr";          field_unit[i] = "VAr"; i++;
-        field_name[i] = "total_system_power_factor"; field_address[i] = 0x003E; field_description[i] = "Total System Power Factor"; field_unit[i] = ""; i++;
+        add_field("average_phase_voltage", 0x002A, "Average Phase Voltage", "V");
+        add_field("average_phase_current", 0x002E, "Average Phase Current", "A");
+        add_field("sum_of_phase_currents", 0x0030, "Sum of Phase Currents", "A");
 
-        field_name[i] = "total_system_phase_angle"; field_address[i] = 0x0042; field_description[i] = "Total System Phase Angle"; field_unit[i] = "°"; i++;
+        add_field("total_system_power",        0x0034, "Total System Power", "W");
+        add_field("total_system_volt_amps",    0x0038, "Total System Volt Amps", "VA");
+        add_field("total_system_var",          0x003C, "Total System VAr", "VAr");
+        add_field("total_system_power_factor", 0x003E, "Total System Power Factor", "");
 
-        field_name[i] = "frequency";            field_address[i] = 0x0046; field_description[i] = "Frequency";            field_unit[i] = "Hz"; i++;
-        field_name[i] = "import_active_energy_since_last_reset"; field_address[i] = 0x0048; field_description[i] = "Import Active Energy Since Last Reset"; field_unit[i] = "kWh"; i++;
-        field_name[i] = "export_active_energy_since_last_reset"; field_address[i] = 0x004A; field_description[i] = "Export Active Energy Since Last Reset"; field_unit[i] = "kWh"; i++;
+        add_field("total_system_phase_angle", 0x0042, "Total System Phase Angle", "°");
 
-        field_name[i] = "import_varh_since_last_reset"; field_address[i] = 0x004C; field_description[i] = "Import VArh since last reset"; field_unit[i] = "kVArh/MVArh"; i++;
-        field_name[i] = "export_varh_since_last_reset"; field_address[i] = 0x004E; field_description[i] = "Export VArh since last reset"; field_unit[i] = "kVArh/MVArh"; i++;
-        field_name[i] = "vah_since_last_reset";         field_address[i] = 0x0050; field_description[i] = "VAh since last reset";         field_unit[i] = "kVAh/MVAh"; i++;
-        field_name[i] = "ah_since_last_reset";          field_address[i] = 0x0052; field_description[i] = "Ah since last reset";          field_unit[i] = "Ah/kAh"; i++;
-        field_name[i] = "total_system_power_demand";    field_address[i] = 0x0054; field_description[i] = "Total system power demand";    field_unit[i] = "W"; i++;
+        add_field("frequency", 0x0046, "Frequency", "Hz");
+        add_field("import_active_energy_since_last_reset", 0x0048, "Import Active Energy Since Last Reset", "kWh");
+        add_field("export_active_energy_since_last_reset", 0x004A, "Export Active Energy Since Last Reset", "kWh");
 
-        field_name[i] = "maximum_total_system_power_demand"; field_address[i] = 0x0056; field_description[i] = "Maximum total system power demand"; field_unit[i] = "VA"; i++;
-        field_name[i] = "total_system_va_demand";            field_address[i] = 0x0064; field_description[i] = "Total system VA demand";            field_unit[i] = "VA"; i++;
-        field_name[i] = "maximum_total_system_va_demand";    field_address[i] = 0x0066; field_description[i] = "Maximum total system VA demand";    field_unit[i] = "VA"; i++;
-        field_name[i] = "neutral_current_demand";            field_address[i] = 0x0068; field_description[i] = "Neutral current demand";            field_unit[i] = "A"; i++;
-        field_name[i] = "maximum_neutral_current_demand";    field_address[i] = 0x006A; field_description[i] = "Maximum neutral current demand";    field_unit[i] = "A"; i++;
+        add_field("import_varh_since_last_reset", 0x004C, "Import VArh since last reset", "kVArh/MVArh");
+        add_field("export_varh_since_last_reset", 0x004E, "Export VArh since last reset", "kVArh/MVArh");
+        add_field("vah_since_last_reset",         0x0050, "VAh since last reset", "kVAh/MVAh");
+        add_field("ah_since_last_reset",          0x0052, "Ah since last reset", "Ah/kAh");
+        add_field("total_system_power_demand",    0x0054, "Total system power demand", "W");
 
-        field_name[i] = "voltage_phase1_to_phase2";       field_address[i] = 0x00C8; field_description[i] = "Voltage Phase 1 to 2"; field_unit[i] = "V"; i++;
-        field_name[i] = "voltage_phase2_to_phase3";       field_address[i] = 0x00CA; field_description[i] = "Voltage Phase 2 to 3"; field_unit[i] = "V"; i++;
-        field_name[i] = "voltage_phase3_to_phase1";       field_address[i] = 0x00CC; field_description[i] = "Voltage Phase 3 to 1"; field_unit[i] = "V"; i++;
-        field_name[i] = "average_voltage_phase_to_phase"; field_address[i] = 0x00CE; field_description[i] = "Average Phase to Phase Voltage"; field_unit[i] = "V"; i++;
+        add_field("maximum_total_system_power_demand", 0x0056, "Maximum total system power demand", "VA");
+        add_field("total_system_va_demand",            0x0064, "Total system VA demand", "VA");
+        add_field("maximum_total_system_va_demand",    0x0066, "Maximum total system VA demand", "VA");
+        add_field("neutral_current_demand",            0x0068, "Neutral current demand", "A");
+        add_field("maximum_neutral_current_demand",    0x006A, "Maximum neutral current demand", "A");
 
-        field_name[i] = "neutral_current";       field_address[i] = 0x00E0; field_description[i] = "Neutral Current"; field_description[i] = "A"; i++;
-      
-        field_name[i] = "phase_1_ln_volts_thd"; field_address[i] = 0x00EA; field_description[i] = "Phase 1 L/N volts THD"; field_description[i] = "%"; i++;
-        field_name[i] = "phase_2_ln_volts_thd"; field_address[i] = 0x00EC; field_description[i] = "Phase 2 L/N volts THD"; field_description[i] = "%"; i++;
-        field_name[i] = "phase_3_ln_volts_thd"; field_address[i] = 0x00EE; field_description[i] = "Phase 3 L/N volts THD"; field_description[i] = "%"; i++;
+        add_field("voltage_phase1_to_phase2",       0x00C8, "Voltage Phase 1 to 2", "V");
+        add_field("voltage_phase2_to_phase3",       0x00CA, "Voltage Phase 2 to 3", "V");
+        add_field("voltage_phase3_to_phase1",       0x00CC, "Voltage Phase 3 to 1", "V");
+        add_field("average_voltage_phase_to_phase", 0x00CE, "Average Phase to Phase Voltage", "V");
 
-        field_name[i] = "phase_1_current_thd"; field_address[i] = 0x00F0; field_description[i] = "Phase 1 Current THD"; field_description[i] = "%"; i++;
-        field_name[i] = "phase_2_current_thd"; field_address[i] = 0x00F2; field_description[i] = "Phase 2 Current THD"; field_description[i] = "%"; i++;
-        field_name[i] = "phase_3_current_thd"; field_address[i] = 0x00F4; field_description[i] = "Phase 3 Current THD"; field_description[i] = "%"; i++;
+        add_field("neutral_current", 0x00E0, "Neutral Current", "A");
 
-        field_name[i] = "avg_line_to_n_volts_thd";   field_address[i] = 0x00F8; field_description[i] = "Average line to neutral volts THD"; field_description[i] = "%"; i++;
-        field_name[i] = "avg_line_current_thd";      field_address[i] = 0x00FA; field_description[i] = "Average line current THD"; field_description[i] = "%"; i++;
-        field_name[i] = "total_system_power_factor"; field_address[i] = 0x00FE; field_description[i] = "Total system power factor"; field_description[i] = "°"; i++;
+        add_field("phase_1_ln_volts_thd", 0x00EA, "Phase 1 L/N volts THD", "%");
+        add_field("phase_2_ln_volts_thd", 0x00EC, "Phase 2 L/N volts THD", "%");
+        add_field("phase_3_ln_volts_thd", 0x00EE, "Phase 3 L/N volts THD", "%");
 
-        field_name[i] = "phase_1_current_demand"; field_address[i] = 0x0102; field_description[i] = "Phase 1 current demand"; field_description[i] = "A"; i++;
-        field_name[i] = "phase_2_current_demand"; field_address[i] = 0x0104; field_description[i] = "Phase 2 current demand"; field_description[i] = "A"; i++;
-        field_name[i] = "phase_3_current_demand"; field_address[i] = 0x0106; field_description[i] = "Phase 3 current demand"; field_description[i] = "A"; i++;
+        add_field("phase_1_current_thd", 0x00F0, "Phase 1 Current THD", "%");
+        add_field("phase_2_current_thd", 0x00F2, "Phase 2 Current THD", "%");
+        add_field("phase_3_current_thd", 0x00F4, "Phase 3 Current THD", "%");
 
-        field_name[i] = "maximum_phase_1_current_demand"; field_address[i] = 0x0108; field_description[i] = "Maximum phase 1 current demand"; field_description[i] = "A"; i++;
-        field_name[i] = "maximum_phase_2_current_demand"; field_address[i] = 0x010A; field_description[i] = "Maximum phase 2 current demand"; field_description[i] = "A"; i++;
-        field_name[i] = "maximum_phase_3_current_demand"; field_address[i] = 0x010C; field_description[i] = "Maximum phase 3 current demand"; field_description[i] = "A"; i++;
+        add_field("avg_line_to_n_volts_thd",   0x00F8, "Average line to neutral volts THD", "%");
+        add_field("avg_line_current_thd",      0x00FA, "Average line current THD", "%");
+        add_field("total_system_power_factor", 0x00FE, "Total system power factor", "°");
 
-        field_name[i] = "line_1_to_line_2_volts_thd"; field_address[i] = 0x014E; field_description[i] = "Line 1 to line 2 volts THD"; field_description[i] = "%"; i++;
-        field_name[i] = "line_2_to_line_3_volts_thd"; field_address[i] = 0x0150; field_description[i] = "Line 2 to line 3 volts THD"; field_description[i] = "%"; i++;
-        field_name[i] = "line_3_to_line_1_volts_thd"; field_address[i] = 0x0152; field_description[i] = "Line 3 to line 1 volts THD"; field_description[i] = "%"; i++;
+        add_field("phase_1_current_demand", 0x0102, "Phase 1 current demand", "A");
+        add_field("phase_2_current_demand", 0x0104, "Phase 2 current demand", "A");
+        add_field("phase_3_current_demand", 0x0106, "Phase 3 current demand", "A");
 
-        field_name[i] = "avg_line_to_line_volts_thd"; field_address[i] = 0x0154; field_description[i] = "Average line to line volts THD"; field_description[i] = "%"; i++;
-  
-        field_name[i] = "total_active_energy_import_plus_export";   field_address[i] = 0x0156; field_description[i] = "Total Active Energy (Import + Export)"; field_unit[i] = "kWh"; i++;
-        field_name[i] = "total_reactive_energy_import_plus_export"; field_address[i] = 0x0158; field_description[i] = "Total Reactive Energy (import + Export)"; field_unit[i] = "kVArh"; i++;
+        add_field("maximum_phase_1_current_demand", 0x0108, "Maximum phase 1 current demand", "A");
+        add_field("maximum_phase_2_current_demand", 0x010A, "Maximum phase 2 current demand", "A");
+        add_field("maximum_phase_3_current_demand", 0x010C, "Maximum phase 3 current demand", "A");
 
-        field_name[i] = "l1_import_energy"; field_address[i] = 0x015a; field_description[i] = "L1 import kwh"; field_unit[i] = "kwh"; i++;
-        field_name[i] = "l2_import_energy"; field_address[i] = 0x015c; field_description[i] = "L2 import kwh"; field_unit[i] = "kwh"; i++;
-        field_name[i] = "l3_import_energy"; field_address[i] = 0x015e; field_description[i] = "L3 import kWh"; field_unit[i] = "kwh"; i++;
-        field_name[i] = "l1_export_energy"; field_address[i] = 0x0160; field_description[i] = "L1 export kWh"; field_unit[i] = "kwh"; i++;
-        field_name[i] = "l2_export_energy"; field_address[i] = 0x0162; field_description[i] = "L2 export kwh"; field_unit[i] = "kwh"; i++;
-        field_name[i] = "l3_export_energy"; field_address[i] = 0x0164; field_description[i] = "L3 export kWh"; field_unit[i] = "kwh"; i++;
-        field_name[i] = "l1_total_energy"; field_address[i] = 0x0166; field_description[i] = "L1 total kwh"; field_unit[i] = "kwh"; i++;
-        field_name[i] = "l2_total_energy"; field_address[i] = 0x0168; field_description[i] = "L2 total kWh"; field_unit[i] = "kwh"; i++;
-        field_name[i] = "l3_total_energy"; field_address[i] = 0x016a; field_description[i] = "L3 total kwh"; field_unit[i] = "kwh"; i++;
-        field_name[i] = "l1_import_kvarh"; field_address[i] = 0x016c; field_description[i] = "L1 import kvarh"; field_unit[i] = "kvarh"; i++;
-        field_name[i] = "l2_import_kvarh"; field_address[i] = 0x016e; field_description[i] = "L2 import kvarh"; field_unit[i] = "kvarh"; i++;
-        field_name[i] = "l3_import_kvarh"; field_address[i] = 0x0170; field_description[i] = "L3 import kvarh"; field_unit[i] = "kvarh"; i++;
-        field_name[i] = "l1_export_kvarh"; field_address[i] = 0x0172; field_description[i] = "L1 export kvarh"; field_unit[i] = "kvarh"; i++;
-        field_name[i] = "l2_export_kvarh"; field_address[i] = 0x0174; field_description[i] = "L2 export kvarh"; field_unit[i] = "kvarh"; i++;
-        field_name[i] = "l3_export_kvarh"; field_address[i] = 0x0176; field_description[i] = "L3 export kvarh"; field_unit[i] = "kvarh"; i++;
-        field_name[i] = "l1_total_kvarh"; field_address[i] = 0x0178; field_description[i] = "L1 total kvarh"; field_unit[i] = "kvarh"; i++;
-        field_name[i] = "l2_total_kvarh"; field_address[i] = 0x017a; field_description[i] = "L2 total kvarh"; field_unit[i] = "kvarh"; i++;
-        field_name[i] = "l3_total_kvarh"; field_address[i] = 0x017c; field_description[i] = "L3 total kvarh"; field_unit[i] = "kvarh"; i++;
+        add_field("line_1_to_line_2_volts_thd", 0x014E, "Line 1 to line 2 volts THD", "%");
+        add_field("line_2_to_line_3_volts_thd", 0x0150, "Line 2 to line 3 volts THD", "%");
+        add_field("line_3_to_line_1_volts_thd", 0x0152, "Line 3 to line 1 volts THD", "%");
 
-        field_name[i] = "net_kwh";   field_address[i] = 0x018C; field_description[i] = "Net Energy (Import-Export)";                field_unit[i] = "kWh"; i++;
-        field_name[i] = "net_kvarh"; field_address[i] = 0x018e; field_description[i] = "Net kVArh (Import-Export)"; field_unit[i] = "kvarh"; i++;
+        add_field("avg_line_to_line_volts_thd", 0x0154, "Average line to line volts THD", "%");
+
+        add_field("total_active_energy_import_plus_export",   0x0156, "Total Active Energy (Import + Export)", "kWh");
+        add_field("total_reactive_energy_import_plus_export", 0x0158, "Total Reactive Energy (import + Export)", "kVArh");
+
+        add_field("l1_import_energy", 0x015A, "L1 import kWh", "kWh");
+        add_field("l2_import_energy", 0x015C, "L2 import kWh", "kWh");
+        add_field("l3_import_energy", 0x015E, "L3 import kWh", "kWh");
+        add_field("l1_export_energy", 0x0160, "L1 export kWh", "kWh");
+        add_field("l2_export_energy", 0x0162, "L2 export kWh", "kWh");
+        add_field("l3_export_energy", 0x0164, "L3 export kWh", "kWh");
+        add_field("l1_total_energy",  0x0166, "L1 total kWh", "kWh");
+        add_field("l2_total_energy",  0x0168, "L2 total kWh", "kWh");
+        add_field("l3_total_energy",  0x016A, "L3 total kWh", "kWh");
+
+        add_field("l1_import_kvarh", 0x016C, "L1 import kVArh", "kVArh");
+        add_field("l2_import_kvarh", 0x016E, "L2 import kVArh", "kVArh");
+        add_field("l3_import_kvarh", 0x0170, "L3 import kVArh", "kVArh");
+        add_field("l1_export_kvarh", 0x0172, "L1 export kVArh", "kVArh");
+        add_field("l2_export_kvarh", 0x0174, "L2 export kVArh", "kVArh");
+        add_field("l3_export_kvarh", 0x0176, "L3 export kVArh", "kVArh");
+        add_field("l1_total_kvarh",  0x0178, "L1 total kVArh", "kVArh");
+        add_field("l2_total_kvarh",  0x017A, "L2 total kVArh", "kVArh");
+        add_field("l3_total_kvarh",  0x017C, "L3 total kVArh", "kVArh");
+
+        add_field("net_kwh",   0x018C, "Net Energy (Import-Export)", "kWh");
+        add_field("net_kvarh", 0x018E, "Net kVArh (Import-Export)", "kVArh");
     }
 };
