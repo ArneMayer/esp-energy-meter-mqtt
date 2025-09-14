@@ -74,7 +74,6 @@ public:
         size_t buffer_position = 0;
         for(int i = 0; i < number_of_fields; i++) {
             if (fields[i].enabled) {
-                debug_print("field_data_map["); debug_print(i); debug_print("] = "); debug_println(buffer_position);
                 fields[i].buffer_position = buffer_position;
                 if (i >= number_of_fields - 1 || fields[i+1].address != fields[i].address) {
                     buffer_position += fields[i].length();
