@@ -5,13 +5,13 @@
 
 #include "logging.hpp"
 
-class FieldsRun {
+class Chunk {
 public:
     uint16_t start_address;
     uint16_t number_of_words;
     uint16_t buffer_position;
 
-    FieldsRun(uint16_t start, uint16_t word_count, uint16_t buffer_position) {
+    Chunk(uint16_t start, uint16_t word_count, uint16_t buffer_position) {
         start_address = start;
         number_of_words = word_count;
         buffer_position = buffer_position;
@@ -60,7 +60,7 @@ public:
     bool auto_config = true;
     
     std::vector<Field> fields;
-    std::vector<FieldsRun> run_list;
+    std::vector<Chunk> chunks;
 
     EnergyMeterConfig(RegisterType reg_type) {
         register_type = reg_type;
@@ -85,11 +85,15 @@ public:
         return buffer_position;
     }
 
-    void setup_run_list() {
+    void setup_chunks() {
+        std::sort(fields.begin(), fields.end(), [](const Field& a, const Field& b){
+            return a.address < b.address;
+        });
+
         uint16_t current_index = 1;
         bool at_the_end = false;
-        uint16_t run_start_index = 0;
-        uint16_t run_length_words = fields[0].length();
+        uint16_t chunk_start_index = 0;
+        uint16_t chunk_length_words = fields[0].length();
 
         while(!at_the_end) {
             const auto& field = fields[current_index];
@@ -101,17 +105,17 @@ public:
             }
 
             if (current_index < number_of_fields && 
-                field.address == fields[run_start_index].address + run_length_words && 
-                run_length_words < max_run_length) {
+                field.address == fields[chunk_start_index].address + chunk_length_words && 
+                chunk_length_words < max_run_length) {
                 // Extend Run
-                run_length_words += field.length();
+                chunk_length_words += field.length();
                 current_index++;
             } else {
                 // Finish Run
-                run_list.push_back(FieldsRun(fields[run_start_index].address, run_length_words, fields[run_start_index].buffer_position));
+                chunks.push_back(Chunk(fields[chunk_start_index].address, chunk_length_words, fields[chunk_start_index].buffer_position));
                 debug_print("Run Length: "); debug_println(run_length_words);
-                run_start_index = current_index;
-                run_length_words = 0;
+                chunk_start_index = current_index;
+                chunk_length_words = 0;
                 if(current_index >= number_of_fields) {
                     at_the_end = true;
                 }
@@ -123,7 +127,7 @@ public:
         setup_registers();
         if (auto_config) {
             buffer_size = setup_buffer_map();
-            setup_run_list();
+            setup_chunks();
         }
     }
 

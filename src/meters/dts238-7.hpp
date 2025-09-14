@@ -40,8 +40,8 @@ public:
         add_field("power_factor_l2",           0x97, "Power Factor L2",           "",    0.001f, FieldType::uint16);
         add_field("power_factor_l3",           0x98, "Power Factor L3",           "",    0.001f, FieldType::uint16);
 
-        run_list.push_back(FieldsRun(0x00, 22, 0));
-        run_list.push_back(FieldsRun(0x80, 25, 22));
+        chunks.push_back(Chunk(0x00, 22, 0));
+        chunks.push_back(Chunk(0x80, 25, 22));
         buffer_size = 22 + 25;
 
         for (int i = 0; i <= 5; i++) {

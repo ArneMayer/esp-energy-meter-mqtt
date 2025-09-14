@@ -251,10 +251,10 @@ String get_value_as_string(uint16_t* data, FieldType type, float field_factor) {
 void loop() {
   // Read Modbus Registers
   for(int i = 0; i < number_of_meters; i++) {
-    for(const auto& run : energy_meter->run_list) {
-      uint16_t buffer_address = (i*data_per_meter + run.buffer_position);
+    for(const auto& chunk : energy_meter->chunks) {
+      uint16_t buffer_address = (i*data_per_meter + chunk.buffer_position);
       uint16_t* data = buffer + buffer_address;
-      read_and_get(energy_meter->register_type, i+1, run.start_address, run.number_of_words, data);
+      read_and_get(energy_meter->register_type, i+1, chunk.start_address, chunk.number_of_words, data);
     }
   }
 
