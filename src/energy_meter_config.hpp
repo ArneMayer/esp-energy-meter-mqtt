@@ -29,24 +29,21 @@ struct Field {
     bool enabled;
 
     size_t length() const {
-        if (type == FieldType::float32) {
-            return 2;
-        } else if (type == FieldType::float32_reversed) {
-            return 2;
-        } else if (type == FieldType::int16) {
-            return 1;
-        } else if (type == FieldType::int32) {
-            return 2;
-        } else if (type == FieldType::uint16) {
-            return 1;
-        } else if (type == FieldType::uint32) {
-            return 2;
-        } else if (type == FieldType::uint8_high_byte) {
-            return 1;
-        } else if (type == FieldType::uint8_low_byte) {
-            return 1;
-        } else {
-            return 0;
+        switch (type) {
+            case FieldType::float32:
+            case FieldType::float32_reversed:
+            case FieldType::int32:
+            case FieldType::uint32:
+                return 2;
+
+            case FieldType::int16:
+            case FieldType::uint16:
+            case FieldType::uint8_high_byte:
+            case FieldType::uint8_low_byte:
+                return 1;
+
+            default:
+                return 0;
         }
     }
 };
