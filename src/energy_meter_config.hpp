@@ -53,7 +53,7 @@ public:
     uint8_t number_of_fields;
     RegisterType register_type;
     size_t buffer_size;
-    size_t max_run_length = 20;
+    size_t max_chunk_size = 20;
     bool auto_config = true;
     
     std::vector<Field> fields;
@@ -86,37 +86,28 @@ public:
             return a.address < b.address;
         });
 
-        uint16_t current_index = 1;
-        bool at_the_end = false;
-        uint16_t chunk_start_index = 0;
-        uint16_t chunk_length_words = fields[0].length();
+        if (fields.empty()) {
+            return;
+        }
 
-        while(!at_the_end) {
-            const auto& field = fields[current_index];
-            const auto& last_field = fields[current_index-1];
+        Chunk chunk(fields[0].address, fields[0].length(), fields[0].buffer_position);
 
-            if (current_index < number_of_fields && field.address == last_field.address) {
-                current_index++;
-                continue;
+        for (int i = 1; i < fields.size(); i++) {
+            const auto& field = fields[i];
+
+            // Extend Chunk
+            if (field.address == chunk.start_address + chunk.number_of_words && chunk.number_of_words + field.length() < max_chunk_size) {
+                chunk.number_of_words = field.address + field.length() - chunk.start_address;
             }
-
-            if (current_index < number_of_fields && 
-                field.address == fields[chunk_start_index].address + chunk_length_words && 
-                chunk_length_words < max_run_length) {
-                // Extend Run
-                chunk_length_words += field.length();
-                current_index++;
-            } else {
-                // Finish Run
-                chunks.push_back(Chunk(fields[chunk_start_index].address, chunk_length_words, fields[chunk_start_index].buffer_position));
-                debug_print("Run Length: "); debug_println(run_length_words);
-                chunk_start_index = current_index;
-                chunk_length_words = 0;
-                if(current_index >= number_of_fields) {
-                    at_the_end = true;
-                }
+            // Finish Chunk
+            else {
+                chunks.push_back(chunk);
+                chunk = Chunk(field.address, field.length(), field.buffer_position);
             }
         }
+
+        // Finish last chunk
+        chunks.push_back(chunk);
     }
 
     void setup() {

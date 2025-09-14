@@ -5,7 +5,7 @@
 class Sdm72dmv1 : public EnergyMeterConfig {
 public:
     Sdm72dmv1() : EnergyMeterConfig(RegisterType::Ireg) {
-        max_run_length = 20;
+        max_chunk_size = 20;
     }
 
     virtual void setup_registers() override {
