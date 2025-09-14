@@ -94,12 +94,6 @@ constexpr uint8_t get_uint8_t_low_byte(uint16_t* data) {
   return data[0] & (uint16_t)0x00FF;
 }
 
-void wait_for_result() {
-    while(mb1.slave()) {
-      mb1.task();
-    }
-}
-
 void setup() {
   Serial.begin(74880);
   softSerial.begin(9600, SWSERIAL_8N1);
@@ -135,14 +129,9 @@ void setup() {
 
   Serial.println("Allocate Buffer");
   
-  data_per_meter = energy_meter->data_per_meter;
+  data_per_meter = energy_meter->buffer_size;
   size_t buffer_size = data_per_meter*number_of_meters;
-  buffer = new uint16_t[buffer_size];
-
-  // Zero out data
-  for (size_t i = 0; i < buffer_size; i++) {
-    buffer[i] = 0;
-  }
+  buffer = new uint16_t[buffer_size]();
 
   Serial.print("number_of_fields: "); Serial.println(energy_meter->number_of_fields);  
   Serial.print("data per meter: "); Serial.println(data_per_meter);
@@ -200,7 +189,7 @@ bool cbWrite(Modbus::ResultCode result_code, uint16_t transactionId, void* data)
   return true;
 }
 
-void waitForResult() {
+void wait_for_result() {
     while(mb1.slave()) {
       mb1.task();
     }
@@ -208,16 +197,11 @@ void waitForResult() {
 
 void read_and_get(RegisterType reg_type, uint16_t meter_id, uint16_t address, uint16_t num_regs, uint16_t* data) {
   if (reg_type == RegisterType::Ireg) {
-    //mb1.pullIreg(meter_id, address, address + num_regs - 1, num_regs, cbWrite);
-    //waitForResult();
     mb1.readIreg(meter_id, address, data, num_regs, cbWrite);
-    waitForResult();
   } else if (reg_type == RegisterType::Hreg) {
-    //mb1.pullHreg(meter_id, address, address + num_regs - 1, num_regs, cbWrite);
-    //waitForResult();
     mb1.readHreg(meter_id, address, data, num_regs, cbWrite);
-    waitForResult();
   }
+  wait_for_result();
 }
 
 void reconnect()
@@ -228,7 +212,7 @@ void reconnect()
     if (client.connect(hostname.c_str(), mqtt_user, mqtt_password, (hostname + "/available").c_str(), 0, true, "offline"))
     {
       Serial.println("connected");
-      //client.publish((hostname + "/available").c_str(), "online", true);
+      client.publish((hostname + "/available").c_str(), "online", true);
     }
     else
     {
@@ -267,10 +251,10 @@ String get_value_as_string(uint16_t* data, FieldType type, float field_factor) {
 void loop() {
   // Read Modbus Registers
   for(int i = 0; i < number_of_meters; i++) {
-    for(const auto& run : energy_meter->run_list) {
-      uint16_t buffer_address = (i*data_per_meter + run.data_map);
+    for(const auto& chunk : energy_meter->chunks) {
+      uint16_t buffer_address = (i*data_per_meter + chunk.buffer_position);
       uint16_t* data = buffer + buffer_address;
-      read_and_get(energy_meter->register_type, i+1, run.start_address, run.number_of_words, data);
+      read_and_get(energy_meter->register_type, i+1, chunk.start_address, chunk.number_of_words, data);
     }
   }
 
@@ -282,20 +266,20 @@ void loop() {
   for (int i = 0; i < number_of_meters; i++) {
     String energy_meter_route = topic + (i+1) + String("/");
     //debug_print("Meter Data #"); debug_println(i+1);
-    for (int j = 0; j < energy_meter->number_of_fields; j++) {
-      if(energy_meter->field_enabled[j]) {
+    for (const auto& field : energy_meter->fields) {
+      if(field.enabled) {
         // Parse value
-        uint16_t buffer_address = data_per_meter*i + energy_meter->field_data_map[j];
+        uint16_t buffer_address = data_per_meter*i + field.buffer_position;
         //debug_print("Reading from buffer address: "); debug_println(buffer_address);
         uint16_t* data = buffer + buffer_address;
-        String value = get_value_as_string(data, energy_meter->field_data_type[j], energy_meter->field_factor[j]);
+        String value = get_value_as_string(data, field.type, field.factor);
 
         // Print debug output
-        //debug_print(energy_meter->field_description[j]); debug_print(": "); debug_print(value); debug_println(energy_meter->field_unit[j]);
+        debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
 
         // Publish value to MQTT
         if (mqtt_enabled) {
-          String route = energy_meter_route + energy_meter->field_name[j];
+          String route = energy_meter_route + field.name;
           client.publish(route.c_str(), value.c_str(), true);
         }
       }
