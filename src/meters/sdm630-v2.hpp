@@ -5,7 +5,7 @@
 class Sdm630v2 : public EnergyMeterConfig {
 public:
     Sdm630v2() : EnergyMeterConfig(RegisterType::Ireg) {
-        max_run_length = 20;
+        max_chunk_size = 20;
     }
 
     void add_field(String name, uint16_t address, String description, String unit) {

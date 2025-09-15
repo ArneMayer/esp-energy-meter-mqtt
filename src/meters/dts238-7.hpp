@@ -6,7 +6,7 @@
 class Dts238_7 : public EnergyMeterConfig {
 public:
     Dts238_7() : EnergyMeterConfig(RegisterType::Hreg) {
-        max_run_length = 25;
+        max_chunk_size = 25;
         auto_config = false;
     }
 
