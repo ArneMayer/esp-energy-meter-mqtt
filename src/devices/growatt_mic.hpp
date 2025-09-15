@@ -1,11 +1,11 @@
 #pragma once
 
-#include "energy_meter_config.hpp"
-#include "energy_meter_type.hpp"
+#include "modbus_device_config.hpp"
+#include "devices.hpp"
 
-class GrowattMic : public EnergyMeterConfig {
+class GrowattMic : public ModbusDeviceConfig {
 public:
-    GrowattMic() : EnergyMeterConfig(RegisterType::Ireg) {
+    GrowattMic() : ModbusDeviceConfig(RegisterType::Ireg) {
         max_chunk_size = 20;
     }
 

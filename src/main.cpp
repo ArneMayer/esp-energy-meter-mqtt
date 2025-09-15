@@ -6,12 +6,12 @@
 
 #include "logging.hpp"
 #include "config.h"
-#include "energy_meter_config.hpp"
-#include "meters/sdm72d-m-v1.hpp"
-#include "meters/sdm72d-m-v2.hpp"
-#include "meters/dts238-7.hpp"
-#include "meters/sdm630-v2.hpp"
-#include "meters/growatt-mic.hpp"
+#include "modbus_device_config.hpp"
+#include "devices/sdm72d_m_v1.hpp"
+#include "devices/sdm72d_m_v2.hpp"
+#include "devices/dts238_7.hpp"
+#include "devices/sdm630_v2.hpp"
+#include "devices/growatt_mic.hpp"
 
 WiFiClient wifiClient;
 PubSubClient client(mqtt_broker, mqtt_port, wifiClient);
@@ -23,7 +23,7 @@ ModbusRTU mb1;
 // and D6 ist connected to TXD
 SoftwareSerial softSerial(D5, D6); // (RX, TX)
 
-EnergyMeterConfig* energy_meter;
+ModbusDeviceConfig* modbus_device;
 uint16_t data_per_meter;
 uint16_t* buffer;
 bool mqtt_enabled = true;
@@ -106,41 +106,41 @@ void setup() {
   mb1.master();
 
   // Setup Configuration
-  if(meter_type == EnergyMeterType::SDM72D_M_V2) {
+  if(device_type == DeviceType::SDM72D_M_V2) {
     Serial.println("Configured Energy Meter Type: SDM72D_M_V2");
-    energy_meter = new Sdm72dmv2();
+    modbus_device = new Sdm72dmv2();
   } 
-  else if (meter_type == EnergyMeterType::SDM72D_M_V1) {
+  else if (device_type == DeviceType::SDM72D_M_V1) {
     Serial.println("Configured Energy Meter Type: SDM72D_M_V1");
-    energy_meter = new Sdm72dmv1();
+    modbus_device = new Sdm72dmv1();
   } 
-  else if (meter_type == EnergyMeterType::DTS238_7) {
+  else if (device_type == DeviceType::DTS238_7) {
     Serial.println("Configured Energy Meter Type: DTS238_7");
-    energy_meter = new Dts238_7();
+    modbus_device = new Dts238_7();
   }
-  else if (meter_type == EnergyMeterType::SDM630_V2) {
+  else if (device_type == DeviceType::SDM630_V2) {
     Serial.println("Configured Energy Meter Type: SDM630_V2");
-    energy_meter = new Sdm630v2();
+    modbus_device = new Sdm630v2();
   }
-  else if (meter_type == EnergyMeterType::Growatt_MIC) {
+  else if (device_type == DeviceType::Growatt_MIC) {
     Serial.println("Configured Energy Meter Type: Growatt_MIC");
-    energy_meter = new GrowattMic();
+    modbus_device = new GrowattMic();
   }
   else {
     Serial.println("Unknown Configuration, defaulting to SDM72D_M_V1");
-    energy_meter = new Sdm72dmv1();
+    modbus_device = new Sdm72dmv1();
   }
-  energy_meter->setup();
+  modbus_device->setup();
 
   Serial.println("Allocate Buffer");
   
-  data_per_meter = energy_meter->buffer_size;
-  size_t buffer_size = data_per_meter*number_of_meters;
+  data_per_meter = modbus_device->buffer_size;
+  size_t buffer_size = data_per_meter*number_of_devices;
   buffer = new uint16_t[buffer_size]();
 
-  Serial.print("number_of_fields: "); Serial.println(energy_meter->number_of_fields);  
-  Serial.print("data per meter: "); Serial.println(data_per_meter);
-  Serial.print("number of meters: "); Serial.println(number_of_meters);
+  Serial.print("number_of_fields: "); Serial.println(modbus_device->number_of_fields);  
+  Serial.print("data per device: "); Serial.println(data_per_meter);
+  Serial.print("number of devices: "); Serial.println(number_of_devices);
   Serial.print("buffer size: "); Serial.println(buffer_size);
 
   last_update_time = millis();
@@ -255,11 +255,11 @@ String get_value_as_string(uint16_t* data, FieldType type, float field_factor) {
 
 void loop() {
   // Read Modbus Registers
-  for(int i = 0; i < number_of_meters; i++) {
-    for(const auto& chunk : energy_meter->chunks) {
+  for(int i = 0; i < number_of_devices; i++) {
+    for(const auto& chunk : modbus_device->chunks) {
       uint16_t buffer_address = (i*data_per_meter + chunk.buffer_position);
       uint16_t* data = buffer + buffer_address;
-      read_and_get(energy_meter->register_type, i+1, chunk.start_address, chunk.number_of_words, data);
+      read_and_get(modbus_device->register_type, i+1, chunk.start_address, chunk.number_of_words, data);
     }
   }
 
@@ -268,10 +268,10 @@ void loop() {
     reconnect();
   }
 
-  for (int i = 0; i < number_of_meters; i++) {
+  for (int i = 0; i < number_of_devices; i++) {
     String energy_meter_route = topic + (i+1) + String("/");
     //debug_print("Meter Data #"); debug_println(i+1);
-    for (const auto& field : energy_meter->fields) {
+    for (const auto& field : modbus_device->fields) {
       if(field.enabled) {
         // Parse value
         uint16_t buffer_address = data_per_meter*i + field.buffer_position;
