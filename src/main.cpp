@@ -11,6 +11,7 @@
 #include "meters/sdm72d-m-v2.hpp"
 #include "meters/dts238-7.hpp"
 #include "meters/sdm630-v2.hpp"
+#include "meters/growatt-mic.hpp"
 
 WiFiClient wifiClient;
 PubSubClient client(mqtt_broker, mqtt_port, wifiClient);
@@ -120,6 +121,10 @@ void setup() {
   else if (meter_type == EnergyMeterType::SDM630_V2) {
     Serial.println("Configured Energy Meter Type: SDM630_V2");
     energy_meter = new Sdm630v2();
+  }
+  else if (meter_type == EnergyMeterType::Growatt_MIC) {
+    Serial.println("Configured Energy Meter Type: Growatt_MIC");
+    energy_meter = new GrowattMic();
   }
   else {
     Serial.println("Unknown Configuration, defaulting to SDM72D_M_V1");
