@@ -96,7 +96,7 @@ public:
             const auto& field = fields[i];
 
             // Extend Chunk
-            if (field.address == chunk.start_address + chunk.number_of_words && chunk.number_of_words + field.length() < max_chunk_size) {
+            if (field.address <= chunk.start_address + chunk.number_of_words && chunk.number_of_words + field.length() < max_chunk_size) {
                 chunk.number_of_words = field.address + field.length() - chunk.start_address;
             }
             // Finish Chunk
