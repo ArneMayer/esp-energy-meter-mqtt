@@ -21,7 +21,7 @@ protected:
     std::vector<Field> _fields;
     std::shared_ptr<ModbusConnection> _con;
     
-    std::map<size_t, size_t> _buffer_positions;
+    std::map<uint16_t, size_t> _buffer_positions;
     std::vector<uint16_t> _buffer;
     std::vector<Chunk> _chunks;
 
