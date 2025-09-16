@@ -1,7 +1,7 @@
 #pragma once
 
 #include "modbus_device.hpp"
-#include "field.hpp"
+#include "modbus_connection.hpp"
 
 class GrowattMic : public ModbusDevice {
 public:

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "modbus_device.hpp"
-#include <modbus_connection.hpp>
+#include "modbus_connection.hpp"
 
 class Dts238_7 : public ModbusDevice {
 public:
