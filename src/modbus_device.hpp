@@ -134,7 +134,7 @@ private:
             Chunk& chunk = chunks.back();
 
             // Extend Chunk
-            size_t new_chunk_length = field.address + field.length() - chunk.start_address;
+            uint16_t new_chunk_length = field.address + field.length() - chunk.start_address;
             if (field.address <= chunk.start_address + chunk.length && new_chunk_length <= max_chunk_size) {
                 chunk.length = std::max(chunk.length, new_chunk_length);
             }

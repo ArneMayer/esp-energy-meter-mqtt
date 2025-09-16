@@ -31,7 +31,7 @@ struct Field {
         type(type),
         enabled(enabled) {}
 
-    size_t length() const {
+    uint16_t length() const {
         switch (type) {
             case FieldType::float32:
             case FieldType::float32_reversed:
