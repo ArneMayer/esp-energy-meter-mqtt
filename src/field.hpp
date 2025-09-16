@@ -51,6 +51,8 @@ struct Field {
     }
 
     bool operator<(const Field& rhs) const {
+        if (name == nullptr) return rhs.name != nullptr; // nullptr < anything else
+        if (rhs.name == nullptr) return false;          // anything else > nullptr
         return strcmp(name, rhs.name) < 0;
     }
 };
