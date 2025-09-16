@@ -1,6 +1,5 @@
 #pragma once
 
-#include <WString.h>
 #include <stdint.h>
 #include <vector>
 #include <map>
@@ -26,7 +25,8 @@ protected:
     std::vector<uint16_t> _buffer;
     std::vector<Chunk> _chunks;
 
-    std::map<Field, String> _field_values;
+    std::map<Field, unsigned long> _update_timestamps;
+    std::map<Field, float> _field_values;
     
 
 public:
@@ -57,8 +57,9 @@ public:
             if(field.enabled) {
                 // Parse value
                 uint16_t* data = &_buffer[_buffer_positions[field.address]];
-                String value = get_value_as_string(data, field.type, field.factor);
+                float value = parse_value(data, field);
                 _field_values[field] = value;
+                _update_timestamps[field] = millis();
 
                 // Print debug output
                 debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
@@ -72,16 +73,17 @@ public:
         if (buffer_position != _buffer_positions.end()) {
             uint16_t* data = &_buffer[buffer_position->second];
             _con->read_and_get(register_type, modbus_id, field.address, field.length(), data);
-            String value = get_value_as_string(data, field.type, field.factor);
+            float value = parse_value(data, field);
             _field_values[field] = value;
+            _update_timestamps[field] = millis();
         }
     }
 
-    const std::map<Field, String>& values() const {
+    const std::map<Field, float>& values() const {
         return _field_values;
     }
 
-    std::optional<String> value(const Field& field) const {
+    std::optional<float> value(const Field& field) const {
         auto it = _field_values.find(field);
         if (it != _field_values.end()) {
             return _field_values.at(field);
@@ -94,9 +96,9 @@ public:
         return _fields;
     }
 
-    std::optional<Field> field(String field_name) const {
+    std::optional<Field> field(const char* field_name) const {
         for(const auto& field : _fields) {
-            if (field_name.equals(field.name)) {
+            if (strcmp(field_name, field.name) == 0) {
                 return field;
             }
         }
@@ -185,26 +187,26 @@ private:
         return data[0] & (uint16_t)0x00FF;
     }
 
-    String get_value_as_string(uint16_t* data, FieldType type, float field_factor) {
-        switch (type) {
+    float parse_value(uint16_t* data, const Field& field) {
+        switch (field.type) {
             case FieldType::float32:
-                return String(get_float(data) * field_factor);
+                return get_float(data) * field.factor;
             case FieldType::float32_reversed:
-                return String(get_float_reversed(data) * field_factor);
+                return get_float_reversed(data) * field.factor;
             case FieldType::int16:
-                return String(get_int16_t(data) * field_factor);
+                return static_cast<float>(get_int16_t(data)) * field.factor;
             case FieldType::int32:
-                return String(get_int32_t(data) * field_factor);
+                return static_cast<float>(get_int32_t(data)) * field.factor;
             case FieldType::uint16:
-                return String(get_uint16_t(data) * field_factor);
+                return static_cast<float>(get_uint16_t(data)) * field.factor;
             case FieldType::uint32:
-                return String(get_uint32_t(data) * field_factor);
+                return static_cast<float>(get_uint32_t(data)) * field.factor;
             case FieldType::uint8_high_byte:
-                return String(get_uint8_t_high_byte(data) * field_factor);
+                return static_cast<float>(get_uint8_t_high_byte(data)) * field.factor;
             case FieldType::uint8_low_byte:
-                return String(get_uint8_t_low_byte(data) * field_factor);
+                return static_cast<float>(get_uint8_t_low_byte(data)) * field.factor;
             default:
-                return "Unknown Type";
+                return std::numeric_limits<float>::quiet_NaN();
         }
     }
 };

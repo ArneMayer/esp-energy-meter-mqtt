@@ -15,7 +15,7 @@ bool cb_write(Modbus::ResultCode result_code, uint16_t transactionId, void* data
 }
 
 class ModbusConnection {
-    public:
+  public:
     ModbusRTU mb;
 
     ModbusConnection(int8_t RX, int8_t TX, int16_t RE_DE, uint16_t baud) : serial(SoftwareSerial(RX, TX)) {
@@ -41,7 +41,7 @@ class ModbusConnection {
     }
 
     
-    static String modbus_result_to_string(Modbus::ResultCode result_code) {
+    static const char* modbus_result_to_string(Modbus::ResultCode result_code) {
         switch(result_code) {
             case Modbus::ResultCode::EX_SUCCESS:
                 return "EX_SUCCESS";
@@ -80,7 +80,7 @@ class ModbusConnection {
         }
     }
 
-    private:
+  private:
     SoftwareSerial serial;
     int16_t RE_DE;
 };

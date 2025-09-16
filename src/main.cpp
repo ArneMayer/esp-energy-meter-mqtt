@@ -124,19 +124,23 @@ void reconnect()
 }
 
 void loop() {
-  // Ensure Connection
   if (mqtt_enabled) {
     reconnect();
     client.loop();
   }
 
+  char value_str[32];
+  char field_topic[128];
+  char device_topic[64];
+  char ttu_str[16];
+
   for (ModbusDevice& device : devices) {
     device.update_all();
 
-    String device_topic = root_topic + device.modbus_id + String("/");
+    snprintf(device_topic, sizeof(device_topic), "%s/%u/", root_topic, device.modbus_id);
     for (const auto& field_value : device.values()) {
       const auto& field = field_value.first;
-      const auto& value = field_value.second;
+      float value = field_value.second;
 
       if(field.enabled) {
         // Print debug output
@@ -144,8 +148,9 @@ void loop() {
 
         // Publish value to MQTT
         if (mqtt_enabled) {
-          String field_topic = device_topic + field.name;
-          client.publish(field_topic.c_str(), value.c_str(), false);
+          snprintf(field_topic, sizeof(field_topic), "%s%s", device_topic, field.name);
+          snprintf(value_str, sizeof(value_str), "%g", value);
+          client.publish(field_topic, value_str, false);
         }
       }
     }
@@ -156,5 +161,6 @@ void loop() {
   unsigned long current_time = millis();
   unsigned long time_to_update = current_time - last_update_time;
   last_update_time = current_time;
-  client.publish(ttu_topic.c_str(), String(time_to_update).c_str(), true);
+  snprintf(ttu_str, sizeof(ttu_str), "%lu", time_to_update);
+  client.publish(ttu_topic.c_str(), ttu_str, true);
 }

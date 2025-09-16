@@ -1,7 +1,5 @@
 #pragma once
 
-#include <WString.h>
-
 enum class FieldType {
     float32,
     float32_reversed,
@@ -21,6 +19,8 @@ struct Field {
     float factor;
     FieldType type;
     bool enabled;
+
+
 
     Field(const char* name, uint16_t address, const char* description, const char* unit, float factor, FieldType type, bool enabled = true)
         : name(name),
@@ -50,7 +50,7 @@ struct Field {
         }
     }
 
-    bool operator< (const Field& rhs) const {
-        return name < rhs.name;
+    bool operator<(const Field& rhs) const {
+        return strcmp(name, rhs.name) < 0;
     }
 };
