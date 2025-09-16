@@ -14,15 +14,15 @@ enum class FieldType {
 };
 
 struct Field {
-    String name;
+    const char* name;
     uint16_t address;
-    String description;
-    String unit;
+    const char* description;
+    const char* unit;
     float factor;
     FieldType type;
     bool enabled;
 
-    Field(String name, uint16_t address, String description, String unit, float factor, FieldType type, bool enabled = true)
+    Field(const char* name, uint16_t address, const char* description, const char* unit, float factor, FieldType type, bool enabled = true)
         : name(name),
         address(address),
         description(description),

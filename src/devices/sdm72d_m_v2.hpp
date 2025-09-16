@@ -63,7 +63,7 @@ public:
     }, 20) {
     }
 
-    static Field field(String name, uint16_t address, String description, String unit) {
+    static Field field(const char* name, uint16_t address, const char* description, const char* unit) {
         return Field(name, address, description, unit, 1.0f, FieldType::float32_reversed, true);
     }
 };

@@ -30,7 +30,7 @@ protected:
     
 
 public:
-    ModbusDevice(std::shared_ptr<ModbusConnection> con, uint16_t modbus_id, RegisterType reg_type, std::vector<Field> fields, size_t max_chunk_size) : 
+    ModbusDevice(std::shared_ptr<ModbusConnection> con, uint16_t modbus_id, RegisterType reg_type, const std::vector<Field>& fields, size_t max_chunk_size) : 
         modbus_id{modbus_id},
         max_chunk_size{max_chunk_size}, 
         register_type{reg_type},
@@ -49,14 +49,14 @@ public:
     
     void update_all() {
         for(const auto& chunk : _chunks) {
-            uint16_t* data = &_buffer.at(chunk.buffer_position);
+            uint16_t* data = &_buffer[chunk.buffer_position];
             _con->read_and_get(register_type, modbus_id, chunk.start_address, chunk.length, data);
         }   
 
         for (const auto& field : _fields) {
             if(field.enabled) {
                 // Parse value
-                uint16_t* data = &_buffer.at(_buffer_positions[field.address]);
+                uint16_t* data = &_buffer[_buffer_positions[field.address]];
                 String value = get_value_as_string(data, field.type, field.factor);
                 _field_values[field] = value;
 
@@ -70,7 +70,7 @@ public:
     void update(const Field& field) {
         auto buffer_position = _buffer_positions.find(field.address);
         if (buffer_position != _buffer_positions.end()) {
-            uint16_t* data = &_buffer.at(buffer_position->second);
+            uint16_t* data = &_buffer[buffer_position->second];
             _con->read_and_get(register_type, modbus_id, field.address, field.length(), data);
             String value = get_value_as_string(data, field.type, field.factor);
             _field_values[field] = value;
@@ -94,9 +94,9 @@ public:
         return _fields;
     }
 
-    std::optional<Field> field(String field_name) {
+    std::optional<Field> field(String field_name) const {
         for(const auto& field : _fields) {
-            if (field.name == field_name) {
+            if (field_name.equals(field.name)) {
                 return field;
             }
         }
@@ -133,8 +133,8 @@ private:
 
             // Extend Chunk
             size_t new_chunk_length = field.address + field.length() - chunk.start_address;
-            if (field.address <= chunk.start_address + chunk.length && new_chunk_length < max_chunk_size) {
-                chunk.length = new_chunk_length;
+            if (field.address <= chunk.start_address + chunk.length && new_chunk_length <= max_chunk_size) {
+                chunk.length = std::max(chunk.length, new_chunk_length);
             }
             // Start New Chunk
             else {
@@ -186,24 +186,25 @@ private:
     }
 
     String get_value_as_string(uint16_t* data, FieldType type, float field_factor) {
-        if (type == FieldType::float32) {
-            return String(get_float(data)*field_factor);
-        } else if (type == FieldType::float32_reversed) {
-            return String(get_float_reversed(data)*field_factor);
-        } else if (type == FieldType::int16) {
-            return String(get_int16_t(data)*field_factor);
-        } else if (type == FieldType::int32) {
-            return String(get_int32_t(data)*field_factor);
-        } else if (type == FieldType::uint16) {
-            return String(get_uint16_t(data)*field_factor);
-        } else if (type == FieldType::uint32) {
-            return String(get_uint32_t(data)*field_factor);
-        } else if (type == FieldType::uint8_high_byte) {
-            return String(get_uint8_t_high_byte(data)*field_factor);
-        } else if (type == FieldType::uint8_low_byte) {
-            return String(get_uint8_t_low_byte(data)*field_factor);
-        } else {
-            return "Unknown Type";
+        switch (type) {
+            case FieldType::float32:
+                return String(get_float(data) * field_factor);
+            case FieldType::float32_reversed:
+                return String(get_float_reversed(data) * field_factor);
+            case FieldType::int16:
+                return String(get_int16_t(data) * field_factor);
+            case FieldType::int32:
+                return String(get_int32_t(data) * field_factor);
+            case FieldType::uint16:
+                return String(get_uint16_t(data) * field_factor);
+            case FieldType::uint32:
+                return String(get_uint32_t(data) * field_factor);
+            case FieldType::uint8_high_byte:
+                return String(get_uint8_t_high_byte(data) * field_factor);
+            case FieldType::uint8_low_byte:
+                return String(get_uint8_t_low_byte(data) * field_factor);
+            default:
+                return "Unknown Type";
         }
     }
 };

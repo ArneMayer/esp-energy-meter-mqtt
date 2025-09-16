@@ -14,7 +14,7 @@
 #include "modbus_connection.hpp"
 
 WiFiClient wifiClient;
-PubSubClient client(mqtt_broker.c_str(), mqtt_port, wifiClient);
+PubSubClient client;
 
 std::vector<ModbusDevice> devices;
 
@@ -22,6 +22,8 @@ bool mqtt_enabled = true;
 
 unsigned long last_update_time = 0;
 String hostname;
+String available_topic = String(root_topic) + "/available";
+String ttu_topic = String(root_topic) + "time_to_update";
 
 String mac_string() {
     uint8_t mac[6];
@@ -33,7 +35,7 @@ String mac_string() {
 
 void setup_wifi() {
   String deviceId = mac_string();
-  String hostname = String("modbus-interface-" + deviceId);
+  hostname = String("modbus-interface-" + deviceId);
   Serial.print("Root Topic: ");
   Serial.println(root_topic);
 
@@ -44,6 +46,7 @@ void setup_wifi() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
+    yield();
   }
  
   Serial.println("");
@@ -58,6 +61,9 @@ void setup() {
   Serial.begin(74880);
   auto connection = std::make_shared<ModbusConnection>(D5, D6, D4, 9600);
   setup_wifi();
+
+  client.setServer(mqtt_broker, mqtt_port);
+  client.setClient(wifiClient);
 
   // Setup Configuration
   if(device_type == DeviceType::SDM72D_M_V2) {
@@ -100,10 +106,10 @@ void reconnect()
   while (!client.connected())
   {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect(hostname.c_str(), mqtt_user.c_str(), mqtt_password.c_str(), (root_topic + "/available").c_str(), 0, true, "offline"))
+    if (client.connect(hostname.c_str(), mqtt_user, mqtt_password, available_topic.c_str(), 0, true, "offline"))
     {
       Serial.println("connected");
-      client.publish((root_topic + "/available").c_str(), "online", true);
+      client.publish(available_topic.c_str(), "online", true);
     }
     else
     {
@@ -121,6 +127,7 @@ void loop() {
   // Ensure Connection
   if (mqtt_enabled) {
     reconnect();
+    client.loop();
   }
 
   for (ModbusDevice& device : devices) {
@@ -138,7 +145,7 @@ void loop() {
         // Publish value to MQTT
         if (mqtt_enabled) {
           String field_topic = device_topic + field.name;
-          client.publish(field_topic.c_str(), value.c_str(), true);
+          client.publish(field_topic.c_str(), value.c_str(), false);
         }
       }
     }
@@ -149,5 +156,5 @@ void loop() {
   unsigned long current_time = millis();
   unsigned long time_to_update = current_time - last_update_time;
   last_update_time = current_time;
-  client.publish((root_topic + "time_to_update").c_str(), String(time_to_update).c_str(), true);
+  client.publish(ttu_topic.c_str(), String(time_to_update).c_str(), true);
 }
