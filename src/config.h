@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include "devices.hpp"
 
-const char* root_topic = "energy-meter-rs485";
+const char* root_topic = "modbus-to-mqtt";
 const char* wifi_ssid = "";
 const char* wifi_pw = "";
 const char* mqtt_broker = "octopi2.fritz.box";
