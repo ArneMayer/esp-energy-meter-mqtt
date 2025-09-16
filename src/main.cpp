@@ -2,35 +2,26 @@
 #include <ESP8266WiFi.h>
 #include <SoftwareSerial.h>
 #include <PubSubClient.h>
-#include <ModbusRTU.h>
 
 #include "logging.hpp"
 #include "config.h"
-#include "modbus_device_config.hpp"
+#include "modbus_device.hpp"
 #include "devices/sdm72d_m_v1.hpp"
 #include "devices/sdm72d_m_v2.hpp"
 #include "devices/dts238_7.hpp"
 #include "devices/sdm630_v2.hpp"
 #include "devices/growatt_mic.hpp"
+#include "modbus_connection.hpp"
 
 WiFiClient wifiClient;
-PubSubClient client(mqtt_broker, mqtt_port, wifiClient);
-String hostname = "energy-meter-rs485";
+PubSubClient client(mqtt_broker.c_str(), mqtt_port, wifiClient);
 
-ModbusRTU mb1;
+std::vector<ModbusDevice> devices;
 
-// D5 is connected to RXD on the RS485 board 
-// and D6 ist connected to TXD
-SoftwareSerial softSerial(D5, D6); // (RX, TX)
-
-ModbusDeviceConfig* modbus_device;
-uint16_t data_per_meter;
-uint16_t* buffer;
 bool mqtt_enabled = true;
 
 unsigned long last_update_time = 0;
-String deviceId;
-String topic;
+String hostname;
 
 String mac_string() {
     uint8_t mac[6];
@@ -41,11 +32,10 @@ String mac_string() {
 }
 
 void setup_wifi() {
-  deviceId = mac_string();
-  topic = String("energy-" + deviceId + "/");
-  hostname = String("energy-" + deviceId);
-  Serial.println("Device ID: ");
-  Serial.println(deviceId);
+  String deviceId = mac_string();
+  String hostname = String("modbus-interface-" + deviceId);
+  Serial.print("Root Topic: ");
+  Serial.println(root_topic);
 
   WiFi.mode(WIFI_STA);
   WiFi.hostname(hostname);
@@ -62,151 +52,47 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
-float get_float_reversed(uint16_t* data) {
-  uint16_t swap[2];
-  swap[0] = data[1];
-  swap[1] = data[0];
-
-  auto float_ptr = reinterpret_cast<float*>(swap);
-  return *float_ptr;
-}
-
-float get_float(uint16_t* data) {
-  auto float_ptr = reinterpret_cast<float*>(data);
-  return *float_ptr;
-}
-
-constexpr uint32_t get_uint32_t(uint16_t* data) {
-  return ((uint32_t)data[0] << 16) + (uint32_t)data[1];
-}
-constexpr int32_t get_int32_t(uint16_t* data) {
-  return (int32_t)get_uint32_t(data);
-}
-constexpr uint16_t get_uint16_t(uint16_t* data) {
-  return data[0];
-}
-constexpr int16_t get_int16_t(uint16_t* data) {
-  return (int16_t)data[0];
-}
-constexpr uint8_t get_uint8_t_high_byte(uint16_t* data) {
-  return (data[0] & (uint16_t)0xFF00) >> 8;
-}
-constexpr uint8_t get_uint8_t_low_byte(uint16_t* data) {
-  return data[0] & (uint16_t)0x00FF;
-}
+ 
 
 void setup() {
   Serial.begin(74880);
-  softSerial.begin(9600, SWSERIAL_8N1);
-
+  auto connection = std::make_shared<ModbusConnection>(D5, D6, D4, 9600);
   setup_wifi();
-
-  // Setup modbus
-  mb1.begin(&softSerial, D4);  // Specify RE_DE control pin
-  mb1.master();
 
   // Setup Configuration
   if(device_type == DeviceType::SDM72D_M_V2) {
     Serial.println("Configured Energy Meter Type: SDM72D_M_V2");
-    modbus_device = new Sdm72dmv2();
+    devices.push_back(Sdm72dmv2(connection, 1));
   } 
   else if (device_type == DeviceType::SDM72D_M_V1) {
     Serial.println("Configured Energy Meter Type: SDM72D_M_V1");
-    modbus_device = new Sdm72dmv1();
+    devices.push_back(Sdm72dmv1(connection, 1));
   } 
   else if (device_type == DeviceType::DTS238_7) {
     Serial.println("Configured Energy Meter Type: DTS238_7");
-    modbus_device = new Dts238_7();
+    devices.push_back(Dts238_7(connection, 1));
   }
   else if (device_type == DeviceType::SDM630_V2) {
     Serial.println("Configured Energy Meter Type: SDM630_V2");
-    modbus_device = new Sdm630v2();
+    devices.push_back(Sdm630v2(connection, 1));
   }
   else if (device_type == DeviceType::Growatt_MIC) {
     Serial.println("Configured Energy Meter Type: Growatt_MIC");
-    modbus_device = new GrowattMic();
+    devices.push_back(GrowattMic(connection, 1));
   }
   else {
     Serial.println("Unknown Configuration, defaulting to SDM72D_M_V1");
-    modbus_device = new Sdm72dmv1();
+    devices.push_back(Sdm72dmv1(connection, 1));
   }
-  modbus_device->setup();
 
-  Serial.println("Allocate Buffer");
   
-  data_per_meter = modbus_device->buffer_size;
-  size_t buffer_size = data_per_meter*number_of_devices;
-  buffer = new uint16_t[buffer_size]();
 
-  Serial.print("number_of_fields: "); Serial.println(modbus_device->number_of_fields);  
-  Serial.print("data per device: "); Serial.println(data_per_meter);
+  //Serial.print("number_of_fields: "); Serial.println(modbus_device->fields.size());  
+  //Serial.print("data per device: "); Serial.println(data_per_meter);
   Serial.print("number of devices: "); Serial.println(number_of_devices);
-  Serial.print("buffer size: "); Serial.println(buffer_size);
+  //Serial.print("buffer size: "); Serial.println(buffer_size);
 
   last_update_time = millis();
-}
-
-String modbus_result_to_string(Modbus::ResultCode result_code) {
-  switch(result_code) {
-    case Modbus::ResultCode::EX_SUCCESS:
-      return "EX_SUCCESS";
-    case Modbus::ResultCode::EX_ILLEGAL_FUNCTION:
-      return "EX_ILLEGAL_FUNCTION";
-    case Modbus::ResultCode::EX_ILLEGAL_ADDRESS:
-      return "EX_ILLEGAL_ADDRESS";  
-    case Modbus::ResultCode::EX_ILLEGAL_VALUE:
-      return "EX_ILLEGAL_VALUE";  
-    case Modbus::ResultCode::EX_SLAVE_FAILURE:
-      return "EX_SLAVE_FAILURE";  
-    case Modbus::ResultCode::EX_ACKNOWLEDGE:
-      return "EX_ACKNOWLEDGE";  
-    case Modbus::ResultCode::EX_SLAVE_DEVICE_BUSY:
-      return "EX_SLAVE_DEVICE_BUSY";  
-    case Modbus::ResultCode::EX_MEMORY_PARITY_ERROR:
-      return "EX_MEMORY_PARITY_ERROR";  
-    case Modbus::ResultCode::EX_PATH_UNAVAILABLE:
-      return "EX_PATH_UNAVAILABLE";  
-    case Modbus::ResultCode::EX_DEVICE_FAILED_TO_RESPOND:
-      return "EX_DEVICE_FAILED_TO_RESPOND";  
-    case Modbus::ResultCode::EX_GENERAL_FAILURE:
-      return "EX_GENERAL_FAILURE";  
-    case Modbus::ResultCode::EX_DATA_MISMACH:
-      return "EX_DATA_MISMACH";  
-    case Modbus::ResultCode::EX_UNEXPECTED_RESPONSE:
-      return "EX_UNEXPECTED_RESPONSE";  
-    case Modbus::ResultCode::EX_TIMEOUT:
-      return "EX_TIMEOUT";  
-    case Modbus::ResultCode::EX_CONNECTION_LOST:
-      return "EX_CONNECTION_LOST";  
-    case Modbus::ResultCode::EX_CANCEL:
-      return "EX_CANCEL"; 
-    default:
-      return "Unknown Error";
-  }
-}
-
-bool cbWrite(Modbus::ResultCode result_code, uint16_t transactionId, void* data) {
-  debug_print("Request result: ");
-  debug_print(modbus_result_to_string(result_code));
-  debug_print(", Mem: ");
-  debug_println(ESP.getFreeHeap());
-
-  return true;
-}
-
-void wait_for_result() {
-    while(mb1.slave()) {
-      mb1.task();
-    }
-}
-
-void read_and_get(RegisterType reg_type, uint16_t meter_id, uint16_t address, uint16_t num_regs, uint16_t* data) {
-  if (reg_type == RegisterType::Ireg) {
-    mb1.readIreg(meter_id, address, data, num_regs, cbWrite);
-  } else if (reg_type == RegisterType::Hreg) {
-    mb1.readHreg(meter_id, address, data, num_regs, cbWrite);
-  }
-  wait_for_result();
 }
 
 void reconnect()
@@ -214,10 +100,10 @@ void reconnect()
   while (!client.connected())
   {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect(hostname.c_str(), mqtt_user, mqtt_password, (hostname + "/available").c_str(), 0, true, "offline"))
+    if (client.connect(hostname.c_str(), mqtt_user.c_str(), mqtt_password.c_str(), (root_topic + "/available").c_str(), 0, true, "offline"))
     {
       Serial.println("connected");
-      client.publish((hostname + "/available").c_str(), "online", true);
+      client.publish((root_topic + "/available").c_str(), "online", true);
     }
     else
     {
@@ -231,61 +117,28 @@ void reconnect()
   }
 }
 
-String get_value_as_string(uint16_t* data, FieldType type, float field_factor) {
-  if (type == FieldType::float32) {
-    return String(get_float(data)*field_factor);
-  } else if (type == FieldType::float32_reversed) {
-    return String(get_float_reversed(data)*field_factor);
-  } else if (type == FieldType::int16) {
-    return String(get_int16_t(data)*field_factor);
-  } else if (type == FieldType::int32) {
-    return String(get_int32_t(data)*field_factor);
-  } else if (type == FieldType::uint16) {
-    return String(get_uint16_t(data)*field_factor);
-  } else if (type == FieldType::uint32) {
-    return String(get_uint32_t(data)*field_factor);
-  } else if (type == FieldType::uint8_high_byte) {
-    return String(get_uint8_t_high_byte(data)*field_factor);
-  } else if (type == FieldType::uint8_low_byte) {
-    return String(get_uint8_t_low_byte(data)*field_factor);
-  } else {
-    return "Unknown Type";
-  }
-}
-
 void loop() {
-  // Read Modbus Registers
-  for(int i = 0; i < number_of_devices; i++) {
-    for(const auto& chunk : modbus_device->chunks) {
-      uint16_t buffer_address = (i*data_per_meter + chunk.buffer_position);
-      uint16_t* data = buffer + buffer_address;
-      read_and_get(modbus_device->register_type, i+1, chunk.start_address, chunk.number_of_words, data);
-    }
-  }
-
   // Ensure Connection
   if (mqtt_enabled) {
     reconnect();
   }
 
-  for (int i = 0; i < number_of_devices; i++) {
-    String energy_meter_route = topic + (i+1) + String("/");
-    //debug_print("Meter Data #"); debug_println(i+1);
-    for (const auto& field : modbus_device->fields) {
-      if(field.enabled) {
-        // Parse value
-        uint16_t buffer_address = data_per_meter*i + field.buffer_position;
-        //debug_print("Reading from buffer address: "); debug_println(buffer_address);
-        uint16_t* data = buffer + buffer_address;
-        String value = get_value_as_string(data, field.type, field.factor);
+  for (ModbusDevice& device : devices) {
+    device.update_all();
 
+    String device_topic = root_topic + device.modbus_id + String("/");
+    for (const auto& field_value : device.values()) {
+      const auto& field = field_value.first;
+      const auto& value = field_value.second;
+
+      if(field.enabled) {
         // Print debug output
         debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
 
         // Publish value to MQTT
         if (mqtt_enabled) {
-          String route = energy_meter_route + field.name;
-          client.publish(route.c_str(), value.c_str(), true);
+          String field_topic = device_topic + field.name;
+          client.publish(field_topic.c_str(), value.c_str(), true);
         }
       }
     }
@@ -296,5 +149,5 @@ void loop() {
   unsigned long current_time = millis();
   unsigned long time_to_update = current_time - last_update_time;
   last_update_time = current_time;
-  client.publish((topic + "time_to_update").c_str(), String(time_to_update).c_str(), true);
+  client.publish((root_topic + "time_to_update").c_str(), String(time_to_update).c_str(), true);
 }
