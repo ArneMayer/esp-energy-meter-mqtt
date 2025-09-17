@@ -14,7 +14,7 @@ class ModbusDevice {
 
 public:
     const uint16_t modbus_id;
-    const size_t max_chunk_size = 20;
+    const uint16_t max_chunk_size = 20;
     const RegisterType register_type;
 
 protected:
