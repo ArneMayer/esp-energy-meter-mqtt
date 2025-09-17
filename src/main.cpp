@@ -3,7 +3,7 @@
 #include <SoftwareSerial.h>
 #include <PubSubClient.h>
 
-#include "logging.hpp"
+#include "debug.hpp"
 #include "config.h"
 #include "modbus_device.hpp"
 #include "devices/sdm72d_m_v1.hpp"
@@ -31,27 +31,29 @@ void setup_wifi() {
   snprintf(mac, sizeof(mac), "%02x%02x%02x%02x%02x%02x", mac_data[0], mac_data[1], mac_data[2], mac_data[3], mac_data[4], mac_data[5]);
   snprintf(hostname, sizeof(hostname), "modbus-interface-%s", mac);
 
-  Serial.print("Root Topic: ");
-  Serial.println(root_topic);
-
   WiFi.mode(WIFI_STA);
   WiFi.hostname(hostname);
   WiFi.begin(wifi_ssid, wifi_pw);
   
+  Serial.print("Connecting to WiFi.");  
+
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
     yield();
   }
+
+  Serial.println(" Ok!");
  
-  Serial.println("");
-  Serial.println("WiFi connected");  
-  Serial.println("IP address: ");
+  Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 }
 
 void setup() {
   Serial.begin(74880);
+  Serial.println("");
+  Serial.println("-----------------------------");
+
   auto connection = std::make_shared<ModbusConnection>(D5, D6, D4, 9600);
   setup_wifi();
 
@@ -61,35 +63,31 @@ void setup() {
   snprintf(available_topic, sizeof(available_topic), "%s/available", root_topic);
   snprintf(ttu_topic, sizeof(ttu_topic), "%s/time_to_update", root_topic);
 
+  Serial.print("Root Topic: ");
+  Serial.println(root_topic);
+
   // Setup Configuration
+  Serial.print("Configured Modbus Device: ");
+  Serial.println(to_string(device_type));
+
   if(device_type == DeviceType::SDM72D_M_V2) {
-    Serial.println("Configured Energy Meter Type: SDM72D_M_V2");
     devices.push_back(Sdm72dmv2(connection, modbus_id));
   } 
   else if (device_type == DeviceType::SDM72D_M_V1) {
-    Serial.println("Configured Energy Meter Type: SDM72D_M_V1");
     devices.push_back(Sdm72dmv1(connection, modbus_id));
   } 
   else if (device_type == DeviceType::DTS238_7) {
-    Serial.println("Configured Energy Meter Type: DTS238_7");
     devices.push_back(Dts238_7(connection, modbus_id));
   }
   else if (device_type == DeviceType::SDM630_V2) {
-    Serial.println("Configured Energy Meter Type: SDM630_V2");
     devices.push_back(Sdm630v2(connection, modbus_id));
   }
   else if (device_type == DeviceType::Growatt_MIC) {
-    Serial.println("Configured Energy Meter Type: Growatt_MIC");
     devices.push_back(GrowattMic(connection, modbus_id));
   }
   else {
-    Serial.println("Unknown Configuration, defaulting to SDM72D_M_V1");
-    devices.push_back(Sdm72dmv1(connection, modbus_id));
+    halt();
   }
-
-  //Serial.print("number_of_fields: "); Serial.println(modbus_device->fields.size());  
-  //Serial.print("data per device: "); Serial.println(data_per_meter);
-  //Serial.print("buffer size: "); Serial.println(buffer_size);
 
   last_update_time = millis();
 }
@@ -101,7 +99,7 @@ void reconnect()
     Serial.print("Attempting MQTT connection...");
     if (client.connect(hostname, mqtt_user, mqtt_password, available_topic, 0, true, "offline"))
     {
-      Serial.println("connected");
+      Serial.println(" Ok!");
       client.publish(available_topic, "online", true);
     }
     else
@@ -137,7 +135,7 @@ void loop() {
 
       if(field.enabled) {
         // Print debug output
-        debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
+        //debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
 
         // Publish value to MQTT
         if (mqtt_enabled) {

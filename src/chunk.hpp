@@ -7,9 +7,6 @@ struct Chunk {
     uint16_t length;
     size_t buffer_position;
 
-    Chunk(uint16_t start, uint16_t word_count, size_t buffer_position) {
-        start_address = start;
-        length = word_count;
-        buffer_position = buffer_position;
-    }
+    Chunk(uint16_t start_address_, uint16_t length_, size_t buffer_position_)
+        : start_address(start_address_), length(length_), buffer_position(buffer_position_) {}
 };

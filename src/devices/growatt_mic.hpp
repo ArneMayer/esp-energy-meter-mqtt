@@ -21,7 +21,6 @@ public:
             Field("energy_today", 53, "Today generated energy", "kWh", 0.1f, FieldType::uint32),
             Field("energy_total", 55, "Total generated energy", "kWh", 0.1f, FieldType::uint32),
             Field("work_time_total", 57, "Work time total", "s", 0.5f, FieldType::uint32),
-
             Field("pv1_energy_today", 59, "PV1 energy today", "kWh", 0.1f, FieldType::uint32),
 
             Field("temperature_inverter", 93, "Inverter temperature", "°C", 0.1f, FieldType::uint16),
