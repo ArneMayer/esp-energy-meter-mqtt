@@ -20,7 +20,7 @@ std::vector<ModbusDevice> devices;
 
 unsigned long last_update_time = 0;
 
-char mac[13] = {0};
+char mac[14] = {0};
 char hostname[40] = {0};
 char available_topic[50] = {0};
 char ttu_topic[60] = {0};
@@ -28,7 +28,7 @@ char ttu_topic[60] = {0};
 void setup_wifi() {
   uint8_t mac_data[6];
   WiFi.macAddress(mac_data);
-  snprintf(mac, 6 * 2 + 1, "%02x%02x%02x%02x%02x%02x", mac_data[0], mac_data[1], mac_data[2], mac_data[3], mac_data[4], mac_data[5]);
+  snprintf(mac, sizeof(mac), "%02x%02x%02x%02x%02x%02x", mac_data[0], mac_data[1], mac_data[2], mac_data[3], mac_data[4], mac_data[5]);
   snprintf(hostname, sizeof(hostname), "modbus-interface-%s", mac);
 
   Serial.print("Root Topic: ");
