@@ -68,34 +68,33 @@ void setup() {
   // Setup Configuration
   if(device_type == DeviceType::SDM72D_M_V2) {
     Serial.println("Configured Energy Meter Type: SDM72D_M_V2");
-    devices.push_back(Sdm72dmv2(connection, 1));
+    devices.push_back(Sdm72dmv2(connection, modbus_id));
   } 
   else if (device_type == DeviceType::SDM72D_M_V1) {
     Serial.println("Configured Energy Meter Type: SDM72D_M_V1");
-    devices.push_back(Sdm72dmv1(connection, 1));
+    devices.push_back(Sdm72dmv1(connection, modbus_id));
   } 
   else if (device_type == DeviceType::DTS238_7) {
     Serial.println("Configured Energy Meter Type: DTS238_7");
-    devices.push_back(Dts238_7(connection, 1));
+    devices.push_back(Dts238_7(connection, modbus_id));
   }
   else if (device_type == DeviceType::SDM630_V2) {
     Serial.println("Configured Energy Meter Type: SDM630_V2");
-    devices.push_back(Sdm630v2(connection, 1));
+    devices.push_back(Sdm630v2(connection, modbus_id));
   }
   else if (device_type == DeviceType::Growatt_MIC) {
     Serial.println("Configured Energy Meter Type: Growatt_MIC");
-    devices.push_back(GrowattMic(connection, 1));
+    devices.push_back(GrowattMic(connection, modbus_id));
   }
   else {
     Serial.println("Unknown Configuration, defaulting to SDM72D_M_V1");
-    devices.push_back(Sdm72dmv1(connection, 1));
+    devices.push_back(Sdm72dmv1(connection, modbus_id));
   }
 
   
 
   //Serial.print("number_of_fields: "); Serial.println(modbus_device->fields.size());  
   //Serial.print("data per device: "); Serial.println(data_per_meter);
-  Serial.print("number of devices: "); Serial.println(number_of_devices);
   //Serial.print("buffer size: "); Serial.println(buffer_size);
 
   last_update_time = millis();
