@@ -5,7 +5,7 @@
 #include <map>
 #include <pins_arduino.h>
 
-#include "logging.hpp"
+#include "debug.hpp"
 #include "field.hpp"
 #include "chunk.hpp"
 #include "modbus_connection.hpp"
@@ -44,6 +44,12 @@ public:
         size_t buffer_size = setup_buffer_map();
         _buffer.resize(buffer_size);
         _chunks = setup_chunks(_fields);
+
+        debug_println("Modbus ID: " + String(modbus_id));
+        debug_println("Max Chunk Size: " + String(max_chunk_size));
+        debug_println("Number of Fields: " + String(_fields.size()));
+        debug_println("Number of Chunks: " + String(_chunks.size()));
+        debug_println("Buffer Size: " + String(_buffer.size()));
     }
 
     
@@ -62,8 +68,7 @@ public:
                 _update_timestamps[field] = millis();
 
                 // Print debug output
-                debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
-
+                //debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
             }
         }
     }
@@ -133,6 +138,10 @@ private:
             const Field& field = fields[i];
             Chunk& chunk = chunks.back();
 
+            if (!field.enabled) {
+                continue;
+            }
+
             // Extend Chunk
             uint16_t new_chunk_length = field.address + field.length() - chunk.start_address;
             if (field.address <= chunk.start_address + chunk.length && new_chunk_length <= max_chunk_size) {
@@ -143,6 +152,17 @@ private:
                 chunks.push_back({field.address, field.length(), _buffer_positions[field.address]});
             }
         }
+
+        #if DEBUG_PRINTS == true
+        for (size_t i = 0; i < fields.size(); i++) {
+            const Field& field = fields[i];
+            debug_println("Field " + String(i) + ": buffer_pos " + String(_buffer_positions[field.address]));
+        }
+        for (size_t i = 0; i < chunks.size(); i++) {
+            const Chunk& chunk = chunks[i];
+            debug_println("Chunk " + String(i) + ": start: " + String(chunk.start_address) + ", length: " + String(chunk.length) + ", buffer_pos: " + String(chunk.buffer_position));
+        }
+        #endif
 
         return chunks;
     }
