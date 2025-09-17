@@ -15,7 +15,7 @@ public:
         field("phase3_current", 0x000A, "Phase 3 Current", "A"),
 
         field("phase1_active_power", 0x000C, "Phase 1 Active Power", "W"),
-        field("phase2_active_power", 0x000, "Phase 2 Active Power", "W"),
+        field("phase2_active_power", 0x000E, "Phase 2 Active Power", "W"),
         field("phase3_active_power", 0x0010, "Phase 3 Active Power", "W"),
 
         field("phase1_apparent_power", 0x0012, "Phase 1 Apparent Power", "W"),
