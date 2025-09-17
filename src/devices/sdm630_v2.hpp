@@ -1,9 +1,9 @@
 #pragma once
 
-#include "modbus_device.hpp"
-#include "modbus_connection.hpp"
+#include "modbus/modbus_device.hpp"
+#include "modbus/modbus_connection.hpp"
 
-class Sdm630v2 : public ModbusDevice {
+class Sdm630v2 : public ModbusDevice { 
 public:
     Sdm630v2(std::shared_ptr<ModbusConnection> connection, uint16_t modbus_id) : ModbusDevice(connection, modbus_id, RegisterType::Ireg, {
         field("phase1_voltage", 0x0000, "Phase 1 Voltage", "V"),
@@ -15,7 +15,7 @@ public:
         field("phase3_current", 0x000A, "Phase 3 Current", "A"),
 
         field("phase1_active_power", 0x000C, "Phase 1 Active Power", "W"),
-        field("phase2_active_power", 0x000E, "Phase 2 Active Power", "W"),
+        field("phase2_active_power", 0x000, "Phase 2 Active Power", "W"),
         field("phase3_active_power", 0x0010, "Phase 3 Active Power", "W"),
 
         field("phase1_apparent_power", 0x0012, "Phase 1 Apparent Power", "W"),

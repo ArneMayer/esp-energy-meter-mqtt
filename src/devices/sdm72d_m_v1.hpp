@@ -1,7 +1,7 @@
 #pragma once
 
-#include "modbus_device.hpp"
-#include "modbus_connection.hpp"
+#include "modbus/modbus_device.hpp"
+#include "modbus/modbus_connection.hpp"
 
 class Sdm72dmv1 : public ModbusDevice {
 public:
