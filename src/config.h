@@ -4,9 +4,9 @@
 #include "devices.hpp"
 
 const char* root_topic = "modbus-to-mqtt";
-const char* wifi_ssid = "ArneTheaHome3";
-const char* wifi_pw = "dk290dKe-.-";
-const char* mqtt_broker = "octoprint.fritz.box";
+const char* wifi_ssid = "";
+const char* wifi_pw = "";
+const char* mqtt_broker = "";
 const char* mqtt_user = "";
 const char* mqtt_password = "";
 const uint16_t mqtt_port = 1883;

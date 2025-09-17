@@ -121,32 +121,31 @@ void loop() {
   }
 
   char value_str[32] = {0};
-  char field_topic[128] = {0};
-  char device_topic[64] = {0};
+  char topic_str[128] = {0};
   char ttu_str[16] = {0};
 
   for (ModbusDevice& device : devices) {
     device.update_all();
 
-    snprintf(device_topic, sizeof(device_topic), "%s/%u/", root_topic, device.modbus_id);
     for (const auto& field_value : device.values()) {
       const auto& field = field_value.first;
       float value = field_value.second;
 
       if(field.enabled) {
-        // Print debug output
-        //debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
-
         // Publish value to MQTT
         if (mqtt_enabled) {
-          snprintf(field_topic, sizeof(field_topic), "%s%s", device_topic, field.name);
+          snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/value", root_topic, to_string(device_type), field.name);
           snprintf(value_str, sizeof(value_str), "%g", value);
-          client.publish(field_topic, value_str, false);
+          client.publish(topic_str, value_str, false);
+
+          snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/description", root_topic, to_string(device_type), field.name);
+          client.publish(topic_str, field.description, false);
+
+          snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/unit", root_topic, to_string(device_type), field.name);
+          client.publish(topic_str, field.unit, false);
         }
       }
     }
-
-    //debug_println("---------------");
   }
 
   unsigned long current_time = millis();
