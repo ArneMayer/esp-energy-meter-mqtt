@@ -60,8 +60,8 @@ class ModbusConnection {
             case Modbus::ResultCode::EX_MEMORY_PARITY_ERROR:
                 return "EX_MEMORY_PARITY_ERROR";  
             case Modbus::ResultCode::EX_PATH_UNAVAILABLE:
-            return "EX_PATH_UNAVAILABLE";  
-                case Modbus::ResultCode::EX_DEVICE_FAILED_TO_RESPOND:
+                return "EX_PATH_UNAVAILABLE";  
+            case Modbus::ResultCode::EX_DEVICE_FAILED_TO_RESPOND:
                 return "EX_DEVICE_FAILED_TO_RESPOND";  
             case Modbus::ResultCode::EX_GENERAL_FAILURE:
                 return "EX_GENERAL_FAILURE";  
