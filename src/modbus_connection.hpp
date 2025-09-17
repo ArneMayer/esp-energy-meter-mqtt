@@ -82,5 +82,4 @@ class ModbusConnection {
 
   private:
     SoftwareSerial serial;
-    int16_t RE_DE;
 };
