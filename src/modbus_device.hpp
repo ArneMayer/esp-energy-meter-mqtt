@@ -30,7 +30,7 @@ protected:
     
 
 public:
-    ModbusDevice(std::shared_ptr<ModbusConnection> con, uint16_t modbus_id, RegisterType reg_type, const std::vector<Field>& fields, size_t max_chunk_size) : 
+    ModbusDevice(std::shared_ptr<ModbusConnection> con, uint16_t modbus_id, RegisterType reg_type, const std::vector<Field>& fields, uint16_t max_chunk_size) : 
         modbus_id{modbus_id},
         max_chunk_size{max_chunk_size}, 
         register_type{reg_type},
