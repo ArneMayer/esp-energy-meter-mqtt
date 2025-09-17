@@ -18,24 +18,19 @@ PubSubClient client;
 
 std::vector<ModbusDevice> devices;
 
-bool mqtt_enabled = true;
-
 unsigned long last_update_time = 0;
-String hostname;
-String available_topic = String(root_topic) + "/available";
-String ttu_topic = String(root_topic) + "time_to_update";
 
-String mac_string() {
-    uint8_t mac[6];
-    WiFi.macAddress(mac);
-    char mac_string[6 * 2 + 1] = {0};
-    snprintf(mac_string, 6 * 2 + 1, "%02x%02x%02x%02x%02x%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    return String(mac_string);
-}
+char mac[14] = {0};
+char hostname[40] = {0};
+char available_topic[50] = {0};
+char ttu_topic[60] = {0};
 
 void setup_wifi() {
-  String deviceId = mac_string();
-  hostname = String("modbus-interface-" + deviceId);
+  uint8_t mac_data[6];
+  WiFi.macAddress(mac_data);
+  snprintf(mac, sizeof(mac), "%02x%02x%02x%02x%02x%02x", mac_data[0], mac_data[1], mac_data[2], mac_data[3], mac_data[4], mac_data[5]);
+  snprintf(hostname, sizeof(hostname), "modbus-interface-%s", mac);
+
   Serial.print("Root Topic: ");
   Serial.println(root_topic);
 
@@ -55,8 +50,6 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
- 
-
 void setup() {
   Serial.begin(74880);
   auto connection = std::make_shared<ModbusConnection>(D5, D6, D4, 9600);
@@ -64,6 +57,9 @@ void setup() {
 
   client.setServer(mqtt_broker, mqtt_port);
   client.setClient(wifiClient);
+
+  snprintf(available_topic, sizeof(available_topic), "%s/available", root_topic);
+  snprintf(ttu_topic, sizeof(ttu_topic), "%s/time_to_update", root_topic);
 
   // Setup Configuration
   if(device_type == DeviceType::SDM72D_M_V2) {
@@ -91,8 +87,6 @@ void setup() {
     devices.push_back(Sdm72dmv1(connection, modbus_id));
   }
 
-  
-
   //Serial.print("number_of_fields: "); Serial.println(modbus_device->fields.size());  
   //Serial.print("data per device: "); Serial.println(data_per_meter);
   //Serial.print("buffer size: "); Serial.println(buffer_size);
@@ -105,10 +99,10 @@ void reconnect()
   while (!client.connected())
   {
     Serial.print("Attempting MQTT connection...");
-    if (client.connect(hostname.c_str(), mqtt_user, mqtt_password, available_topic.c_str(), 0, true, "offline"))
+    if (client.connect(hostname, mqtt_user, mqtt_password, available_topic, 0, true, "offline"))
     {
       Serial.println("connected");
-      client.publish(available_topic.c_str(), "online", true);
+      client.publish(available_topic, "online", true);
     }
     else
     {
@@ -128,10 +122,10 @@ void loop() {
     client.loop();
   }
 
-  char value_str[32];
-  char field_topic[128];
-  char device_topic[64];
-  char ttu_str[16];
+  char value_str[32] = {0};
+  char field_topic[128] = {0};
+  char device_topic[64] = {0};
+  char ttu_str[16] = {0};
 
   for (ModbusDevice& device : devices) {
     device.update_all();
@@ -161,5 +155,5 @@ void loop() {
   unsigned long time_to_update = current_time - last_update_time;
   last_update_time = current_time;
   snprintf(ttu_str, sizeof(ttu_str), "%lu", time_to_update);
-  client.publish(ttu_topic.c_str(), ttu_str, true);
+  client.publish(ttu_topic, ttu_str, true);
 }
