@@ -1,6 +1,7 @@
 #pragma once 
 
 #include <stdint.h>
+#include <cstddef>
 
 struct Chunk {
     uint16_t start_address;

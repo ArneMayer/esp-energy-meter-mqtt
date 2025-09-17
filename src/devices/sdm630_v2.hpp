@@ -1,9 +1,9 @@
 #pragma once
 
-#include "modbus_device.hpp"
-#include "modbus_connection.hpp"
+#include "modbus/modbus_device.hpp"
+#include "modbus/modbus_connection.hpp"
 
-class Sdm630v2 : public ModbusDevice {
+class Sdm630v2 : public ModbusDevice { 
 public:
     Sdm630v2(std::shared_ptr<ModbusConnection> connection, uint16_t modbus_id) : ModbusDevice(connection, modbus_id, RegisterType::Ireg, {
         field("phase1_voltage", 0x0000, "Phase 1 Voltage", "V"),

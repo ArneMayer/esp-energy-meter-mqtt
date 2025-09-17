@@ -5,13 +5,14 @@
 
 #include "debug.hpp"
 #include "config.h"
-#include "modbus_device.hpp"
+#include "modbus/modbus_device.hpp"
 #include "devices/sdm72d_m_v1.hpp"
 #include "devices/sdm72d_m_v2.hpp"
 #include "devices/dts238_7.hpp"
 #include "devices/sdm630_v2.hpp"
 #include "devices/growatt_mic.hpp"
-#include "modbus_connection.hpp"
+#include "modbus/modbus_connection.hpp"
+#include "value_tracker.hpp"
 
 WiFiClient wifiClient;
 PubSubClient client;
@@ -110,7 +111,7 @@ void reconnect()
       Serial.println(" try again in 3 seconds");
       delay(3000);
       return;
-    }
+    } 
   }
 }
 
