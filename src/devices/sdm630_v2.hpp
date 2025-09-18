@@ -5,7 +5,7 @@
 
 class Sdm630v2 : public ModbusDevice { 
 public:
-    Sdm630v2(std::shared_ptr<ModbusConnection> connection, uint16_t modbus_id) : ModbusDevice(connection, modbus_id, RegisterType::Ireg, {
+    Sdm630v2(std::shared_ptr<ModbusConnection> connection, ModbusId modbus_id) : ModbusDevice(connection, modbus_id, {
         field("phase1_voltage", 0x0000, "Phase 1 Voltage", "V"),
         field("phase2_voltage", 0x0002, "Phase 2 Voltage", "V"),
         field("phase3_voltage", 0x0004, "Phase 3 Voltage", "V"),
@@ -122,6 +122,6 @@ public:
     }
 
     static Field field(const char* name, uint16_t address, const char* description, const char* unit) {
-        return Field(name, address, description, unit, 1.0f, FieldType::float32_reversed, true);
+        return Field(name, address, description, unit, 1.0f, DataType::float32_reversed, RegisterType::Ireg);
     }
 };

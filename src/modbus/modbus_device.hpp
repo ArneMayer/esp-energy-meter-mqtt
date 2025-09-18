@@ -13,9 +13,8 @@
 class ModbusDevice {
 
 public:
-    const uint16_t modbus_id;
+    const ModbusId modbus_id;
     const uint16_t max_chunk_size = 20;
-    const RegisterType register_type;
 
 protected:
     std::vector<Field> _fields;
@@ -30,10 +29,9 @@ protected:
     
 
 public:
-    ModbusDevice(std::shared_ptr<ModbusConnection> con, uint16_t modbus_id, RegisterType reg_type, const std::vector<Field>& fields, uint16_t max_chunk_size) : 
+    ModbusDevice(std::shared_ptr<ModbusConnection> con, ModbusId modbus_id, const std::vector<Field>& fields, uint16_t max_chunk_size) : 
         modbus_id{modbus_id},
         max_chunk_size{max_chunk_size}, 
-        register_type{reg_type},
         _fields{fields},
         _con{con} {
 
@@ -56,7 +54,7 @@ public:
     void update_all() {
         for(const auto& chunk : _chunks) {
             uint16_t* data = &_buffer[chunk.buffer_position];
-            _con->read_and_get(register_type, modbus_id, chunk.start_address, chunk.length, data);
+            _con->read_and_get(chunk.register_type, modbus_id, chunk.start_address, chunk.length, data);
         }   
 
         for (const auto& field : _fields) {
@@ -77,7 +75,7 @@ public:
         auto buffer_position = _buffer_positions.find(field.address);
         if (buffer_position != _buffer_positions.end()) {
             uint16_t* data = &_buffer[buffer_position->second];
-            _con->read_and_get(register_type, modbus_id, field.address, field.length(), data);
+            _con->read_and_get(field.register_type, modbus_id, field.address, field.length(), data);
             float value = parse_value(data, field);
             _field_values[field] = value;
             _update_timestamps[field] = millis();
@@ -132,7 +130,10 @@ private:
             return chunks;
         }
 
-        chunks.push_back({fields[0].address, fields[0].length(), _buffer_positions[fields[0].address]});
+        // TODO
+        auto register_type = fields[0].register_type;
+
+        chunks.push_back({fields[0].address, fields[0].length(), _buffer_positions[fields[0].address], register_type});
 
         for (size_t i = 1; i < fields.size(); i++) {
             const Field& field = fields[i];
@@ -149,7 +150,7 @@ private:
             }
             // Start New Chunk
             else {
-                chunks.push_back({field.address, field.length(), _buffer_positions[field.address]});
+                chunks.push_back({field.address, field.length(), _buffer_positions[field.address], register_type});
             }
         }
 
@@ -209,21 +210,21 @@ private:
 
     float parse_value(uint16_t* data, const Field& field) {
         switch (field.type) {
-            case FieldType::float32:
+            case DataType::float32:
                 return get_float(data) * field.factor;
-            case FieldType::float32_reversed:
+            case DataType::float32_reversed:
                 return get_float_reversed(data) * field.factor;
-            case FieldType::int16:
+            case DataType::int16:
                 return static_cast<float>(get_int16_t(data)) * field.factor;
-            case FieldType::int32:
+            case DataType::int32:
                 return static_cast<float>(get_int32_t(data)) * field.factor;
-            case FieldType::uint16:
+            case DataType::uint16:
                 return static_cast<float>(get_uint16_t(data)) * field.factor;
-            case FieldType::uint32:
+            case DataType::uint32:
                 return static_cast<float>(get_uint32_t(data)) * field.factor;
-            case FieldType::uint8_high_byte:
+            case DataType::uint8_high_byte:
                 return static_cast<float>(get_uint8_t_high_byte(data)) * field.factor;
-            case FieldType::uint8_low_byte:
+            case DataType::uint8_low_byte:
                 return static_cast<float>(get_uint8_t_low_byte(data)) * field.factor;
             default:
                 return std::numeric_limits<float>::quiet_NaN();

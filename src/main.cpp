@@ -22,9 +22,10 @@ std::vector<std::pair<ModbusDevice,DeviceType>> devices;
 unsigned long last_update_time = 0;
 
 char mac[14] = {0};
-char hostname[40] = {0};
-char available_topic[50] = {0};
-char ttu_topic[60] = {0};
+char hostname[48] = {0};
+char available_topic[48] = {0};
+char ttu_topic[64] = {0};
+char free_heap_topic[64] = {0};
 
 void setup_wifi() {
   uint8_t mac_data[6];
@@ -62,6 +63,7 @@ void setup() {
   client.setClient(wifiClient);
 
   snprintf(available_topic, sizeof(available_topic), "%s/available", root_topic);
+  snprintf(free_heap_topic, sizeof(free_heap_topic), "%s/free_heap", root_topic);
   snprintf(ttu_topic, sizeof(ttu_topic), "%s/time_to_update", root_topic);
 
   Serial.print("Root Topic: ");
@@ -125,9 +127,8 @@ void loop() {
     client.loop();
   }
 
-  char value_str[32] = {0};
+  char payload_str[48] = {0};
   char topic_str[128] = {0};
-  char ttu_str[16] = {0};
 
   for (auto&[device, device_type] : devices) {
     device.update_all();
@@ -137,8 +138,8 @@ void loop() {
         // Publish value to MQTT
         if (mqtt_enabled) {
           snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/value", root_topic, to_string(device_type), field.name);
-          snprintf(value_str, sizeof(value_str), "%g", value);
-          client.publish(topic_str, value_str, false);
+          snprintf(payload_str, sizeof(payload_str), "%g", value);
+          client.publish(topic_str, payload_str, false);
 
           snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/description", root_topic, to_string(device_type), field.name);
           client.publish(topic_str, field.description, false);
@@ -153,6 +154,9 @@ void loop() {
   unsigned long current_time = millis();
   unsigned long time_to_update = current_time - last_update_time;
   last_update_time = current_time;
-  snprintf(ttu_str, sizeof(ttu_str), "%lu", time_to_update);
-  client.publish(ttu_topic, ttu_str, true);
+  snprintf(payload_str, sizeof(payload_str), "%lu", time_to_update);
+  client.publish(ttu_topic, payload_str, true);
+
+  snprintf(payload_str, sizeof(payload_str), "%u", ESP.getFreeHeap());
+  client.publish(free_heap_topic, payload_str, true);
 }
