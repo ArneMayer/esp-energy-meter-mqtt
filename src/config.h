@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include "devices.hpp"
 
+#define ModbusId uint8_t
+
 const char* root_topic = "modbus-to-mqtt";
 const char* wifi_ssid = "";
 const char* wifi_pw = "";
@@ -11,5 +13,11 @@ const char* mqtt_user = "";
 const char* mqtt_password = "";
 const uint16_t mqtt_port = 1883;
 const bool mqtt_enabled = true;
-const uint8_t modbus_id = 1;
-const DeviceType device_type = DeviceType::Growatt_MIC;
+
+const std::vector<std::pair<ModbusId, DeviceType>> device_configs = {
+    {1, DeviceType::DTS238_7},
+    {2, DeviceType::Growatt_MIC}, 
+    {3, DeviceType::SDM630_V2},
+    {4, DeviceType::SDM72D_M_V1},
+    {5, DeviceType::SDM72D_M_V2}
+};
