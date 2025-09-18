@@ -17,7 +17,7 @@
 WiFiClient wifiClient;
 PubSubClient client;
 
-std::vector<ModbusDevice> devices;
+std::vector<std::pair<ModbusDevice,DeviceType>> devices;
 
 unsigned long last_update_time = 0;
 
@@ -68,26 +68,30 @@ void setup() {
   Serial.println(root_topic);
 
   // Setup Configuration
-  Serial.print("Configured Modbus Device: ");
-  Serial.println(to_string(device_type));
+  for (const auto&[modbus_id, device_type] : device_configs) {
+    Serial.print("Configured Modbus Device: ");
+    Serial.print(to_string(device_type));
+    Serial.print(", Modbus ID: ");
+    Serial.println(modbus_id);
 
-  if(device_type == DeviceType::SDM72D_M_V2) {
-    devices.push_back(Sdm72dmv2(connection, modbus_id));
-  } 
-  else if (device_type == DeviceType::SDM72D_M_V1) {
-    devices.push_back(Sdm72dmv1(connection, modbus_id));
-  } 
-  else if (device_type == DeviceType::DTS238_7) {
-    devices.push_back(Dts238_7(connection, modbus_id));
-  }
-  else if (device_type == DeviceType::SDM630_V2) {
-    devices.push_back(Sdm630v2(connection, modbus_id));
-  }
-  else if (device_type == DeviceType::Growatt_MIC) {
-    devices.push_back(GrowattMic(connection, modbus_id));
-  }
-  else {
-    halt();
+    if(device_type == DeviceType::SDM72D_M_V2) {
+      devices.push_back({Sdm72dmv2(connection, modbus_id), device_type});
+    } 
+    else if (device_type == DeviceType::SDM72D_M_V1) {
+      devices.push_back({Sdm72dmv1(connection, modbus_id), device_type});
+    } 
+    else if (device_type == DeviceType::DTS238_7) {
+      devices.push_back({Dts238_7(connection, modbus_id), device_type});
+    }
+    else if (device_type == DeviceType::SDM630_V2) {
+      devices.push_back({Sdm630v2(connection, modbus_id), device_type});
+    }
+    else if (device_type == DeviceType::Growatt_MIC) {
+      devices.push_back({GrowattMic(connection, modbus_id), device_type});
+    }
+    else {
+      halt();
+    }
   }
 
   last_update_time = millis();
@@ -125,13 +129,10 @@ void loop() {
   char topic_str[128] = {0};
   char ttu_str[16] = {0};
 
-  for (ModbusDevice& device : devices) {
+  for (auto&[device, device_type] : devices) {
     device.update_all();
 
-    for (const auto& field_value : device.values()) {
-      const auto& field = field_value.first;
-      float value = field_value.second;
-
+    for (const auto&[field, value] : device.values()) {
       if(field.enabled) {
         // Publish value to MQTT
         if (mqtt_enabled) {
