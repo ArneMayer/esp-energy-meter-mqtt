@@ -18,16 +18,15 @@ public:
 
 protected:
     std::vector<Field> _fields;
+    std::vector<unsigned long> _update_timestamps;
+    std::vector<float> _field_values;
+
     std::shared_ptr<ModbusConnection> _con;
     
     std::map<uint16_t, size_t> _buffer_positions;
     std::vector<uint16_t> _buffer;
     std::vector<Chunk> _chunks;
-
-    std::map<Field, unsigned long> _update_timestamps;
-    std::map<Field, float> _field_values;
     
-
 public:
     ModbusDevice(std::shared_ptr<ModbusConnection> con, ModbusId modbus_id, const std::vector<Field>& fields, uint16_t max_chunk_size) : 
         modbus_id{modbus_id},
@@ -37,7 +36,10 @@ public:
 
         std::sort(_fields.begin(), _fields.end(), [](const Field& a, const Field& b){
             return a.address < b.address;
-        }); 
+        });
+
+        _update_timestamps.resize(_fields.size());
+        _field_values.resize(_fields.size());
 
         size_t buffer_size = setup_buffer_map();
         _buffer.resize(buffer_size);
@@ -57,35 +59,38 @@ public:
             _con->read_and_get(chunk.register_type, modbus_id, chunk.start_address, chunk.length, data);
         }   
 
-        for (const auto& field : _fields) {
-            if(field.enabled) {
-                // Parse value
-                uint16_t* data = &_buffer[_buffer_positions[field.address]];
-                float value = parse_value(data, field);
-                _field_values[field] = value;
-                _update_timestamps[field] = millis();
+        for (size_t i = 0; i < _fields.size(); i++) {
+            const auto& field = _fields[i];
 
-                // Print debug output
-                //debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
-            }
+            // Parse value
+            uint16_t* data = &_buffer[_buffer_positions[field.address]];
+            float value = parse_value(data, field);
+            _field_values[i] = value;
+            _update_timestamps[i] = millis();
+
+            // Print debug output
+            //debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
         }
     }
 
+    /*
     void update(const Field& field) {
         auto buffer_position = _buffer_positions.find(field.address);
         if (buffer_position != _buffer_positions.end()) {
             uint16_t* data = &_buffer[buffer_position->second];
             _con->read_and_get(field.register_type, modbus_id, field.address, field.length(), data);
             float value = parse_value(data, field);
-            _field_values[field] = value;
-            _update_timestamps[field] = millis();
+            _field_values[&field] = value;
+            _update_timestamps[&field] = millis();
         }
     }
+    */
 
-    const std::map<Field, float>& values() const {
-        return _field_values;
+    const std::pair<const std::vector<Field>&, const std::vector<float>&> values() const {
+        return {_fields, _field_values};
     }
 
+    /*
     std::optional<float> value(const Field& field) const {
         auto it = _field_values.find(field);
         if (it != _field_values.end()) {
@@ -93,7 +98,7 @@ public:
         } else {
             return std::nullopt;
         }
-    }
+    }*/
 
     const std::vector<Field>& fields() const {
         return _fields;
@@ -114,7 +119,7 @@ private:
         size_t buffer_size = 0;
 
         for(const Field& field : _fields) {
-            if (field.enabled && _buffer_positions.find(field.address) == _buffer_positions.end()) {
+            if (_buffer_positions.find(field.address) == _buffer_positions.end()) {
                 _buffer_positions[field.address] = buffer_size;
                 buffer_size += field.length();
             }
@@ -138,10 +143,6 @@ private:
         for (size_t i = 1; i < fields.size(); i++) {
             const Field& field = fields[i];
             Chunk& chunk = chunks.back();
-
-            if (!field.enabled) {
-                continue;
-            }
 
             // Extend Chunk
             uint16_t new_chunk_length = field.address + field.length() - chunk.start_address;

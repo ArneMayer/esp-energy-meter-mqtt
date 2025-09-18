@@ -19,17 +19,15 @@ struct Field {
     float factor;
     DataType type;
     RegisterType register_type;
-    bool enabled;
 
-    Field(const char* name, uint16_t address, const char* description, const char* unit, float factor, DataType type, RegisterType register_type, bool enabled = true)
+    Field(const char* name, uint16_t address, const char* description, const char* unit, float factor, DataType type, RegisterType register_type)
         : name(name),
         address(address),
         description(description),
         unit(unit),
         factor(factor),
         type(type),
-        register_type(register_type),
-        enabled(enabled) {}
+        register_type(register_type) {}
 
     uint16_t length() const {
         switch (type) {

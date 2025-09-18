@@ -133,20 +133,23 @@ void loop() {
   for (auto&[device, device_type] : devices) {
     device.update_all();
 
-    for (const auto&[field, value] : device.values()) {
-      if(field.enabled) {
-        // Publish value to MQTT
-        if (mqtt_enabled) {
-          snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/value", root_topic, to_string(device_type), field.name);
-          snprintf(payload_str, sizeof(payload_str), "%g", value);
-          client.publish(topic_str, payload_str, false);
+    const auto&[fields, values] = device.values();
 
-          snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/description", root_topic, to_string(device_type), field.name);
-          client.publish(topic_str, field.description, false);
+    for (size_t i = 0; i < fields.size(); i++) {
+      const auto& field = fields[i];
+      float value = values[i];
 
-          snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/unit", root_topic, to_string(device_type), field.name);
-          client.publish(topic_str, field.unit, false);
-        }
+      // Publish value to MQTT
+      if (mqtt_enabled) {
+        snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/value", root_topic, to_string(device_type), field.name);
+        snprintf(payload_str, sizeof(payload_str), "%g", value);
+        client.publish(topic_str, payload_str, false);
+
+        snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/description", root_topic, to_string(device_type), field.name);
+        client.publish(topic_str, field.description, false);
+
+        snprintf(topic_str, sizeof(topic_str), "%s/%s/%s/unit", root_topic, to_string(device_type), field.name);
+        client.publish(topic_str, field.unit, false);
       }
     }
   }
