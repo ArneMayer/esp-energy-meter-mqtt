@@ -7,6 +7,8 @@
 
 #define MOCKED
 
+using ModbusId = uint16_t;
+
 inline const char* to_string(Modbus::ResultCode result_code) {
     switch(result_code) {
         case Modbus::ResultCode::EX_SUCCESS:
@@ -59,6 +61,10 @@ class ModbusConnection {
   public:
     ModbusRTU mb;
 
+    // Disable Copies
+    ModbusConnection(const ModbusConnection&) = delete;
+    ModbusConnection& operator=(const ModbusConnection&) = delete;
+
     ModbusConnection(int8_t RX, int8_t TX, int16_t RE_DE, uint16_t baud) : serial(SoftwareSerial(RX, TX)) {
         serial.begin(baud, SWSERIAL_8N1);
         mb.begin(&serial, RE_DE);
@@ -76,7 +82,7 @@ class ModbusConnection {
         #endif
     }
 
-    void read_and_get(RegisterType reg_type, uint16_t modbus_id, uint16_t address, uint16_t num_regs, uint16_t* data) {
+    void read_and_get(RegisterType reg_type, ModbusId modbus_id, uint16_t address, uint16_t num_regs, uint16_t* data) {
         #ifndef MOCKED
         if (reg_type == RegisterType::Ireg) {
             mb.readIreg(modbus_id, address, data, num_regs, cb_write);

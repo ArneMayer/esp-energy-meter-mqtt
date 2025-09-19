@@ -5,8 +5,8 @@
 
 #if DEBUG_PRINTS == true
 
-#define debug_print(s) Serial.print(s)
-#define debug_println(s) Serial.println(s)
+#define debug_print(s) Serial.print(s); Serial.flush();
+#define debug_println(s) Serial.println(s); Serial.flush();
 
 #else
 
@@ -18,5 +18,6 @@
 void halt() {
     while(true) {
         delay(1000);
+        yield();
     }
 }
