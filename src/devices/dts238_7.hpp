@@ -45,11 +45,11 @@ public:
         _buffer_positions.clear();
 
         for (int i = 0; i <= 5; i++) {
-            _buffer_positions[_fields[i].address] = _fields[i].address;
+            _buffer_positions[i] = _fields[i].address;
         }
 
         for (int i = 6; i <= 27; i++) {
-            _buffer_positions[_fields[i].address] = _fields[i].address - 0x80 + 22;
+            _buffer_positions[i] = _fields[i].address - 0x80 + 22;
         }
 
         _chunks = {Chunk(0x00, 22, 0, RegisterType::Hreg), Chunk(0x80, 25, 22, RegisterType::Hreg)};

@@ -11,7 +11,7 @@ private:
     }
 
 public:
-    GrowattMic(std::shared_ptr<ModbusConnection> connection, ModbusId modbus_id) : ModbusDevice(connection, modbus_id, std::vector({
+    GrowattMic(std::shared_ptr<ModbusConnection> connection, ModbusId modbus_id) : ModbusDevice(connection, modbus_id, {
             ireg("inverter_status", 0, "Inverter run state (0:waiting, 1:normal, 3:fault)", "", 1.0f, DataType::uint16),
             ireg("input_power", 1, "Input Power", "W", 0.1f, DataType::uint32),
             ireg("pv1_voltage", 3, "PV1 voltage", "V", 0.1f, DataType::uint16),
@@ -37,6 +37,6 @@ public:
             ireg("n_bus_voltage", 99, "N Bus inside voltage", "V", 0.1f, DataType::uint16),
 
             ireg("fault_code", 105, "Inverter fault code", "", 1.0f, DataType::uint16),
-            ireg("fault_bitcode", 106, "Inverter fault bitcode", "", 1.0f, DataType::uint32)}), 20)
+            ireg("fault_bitcode", 106, "Inverter fault bitcode", "", 1.0f, DataType::uint32)}, 20)
         {}
 };

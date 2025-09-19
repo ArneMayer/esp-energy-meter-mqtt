@@ -14,7 +14,7 @@ class ModbusDevice {
 
 public:
     const ModbusId modbus_id;
-    const uint16_t max_chunk_size = 20;
+    const uint16_t max_chunk_size;
 
 protected:
     std::vector<Field> _fields;
@@ -23,23 +23,23 @@ protected:
 
     std::shared_ptr<ModbusConnection> _con;
     
-    std::map<uint16_t, size_t> _buffer_positions;
+    std::vector<size_t> _buffer_positions;
     std::vector<uint16_t> _buffer;
     std::vector<Chunk> _chunks;
     
 public:
-    ModbusDevice(std::shared_ptr<ModbusConnection> con, ModbusId modbus_id, const std::vector<Field>& fields, uint16_t max_chunk_size) : 
+    ModbusDevice(std::shared_ptr<ModbusConnection> con, ModbusId modbus_id, std::vector<Field> fields, uint16_t max_chunk_size) : 
         modbus_id{modbus_id},
         max_chunk_size{max_chunk_size}, 
-        _fields{fields},
-        _con{con} {
+        _fields{std::move(fields)},
+        _update_timestamps(_fields.size()),
+        _field_values(_fields.size()),
+        _con{std::move(con)},
+        _buffer_positions(_fields.size()) {
 
         std::sort(_fields.begin(), _fields.end(), [](const Field& a, const Field& b){
             return a.address < b.address;
         });
-
-        _update_timestamps.resize(_fields.size());
-        _field_values.resize(_fields.size());
 
         size_t buffer_size = setup_buffer_map();
         _buffer.resize(buffer_size);
@@ -63,13 +63,10 @@ public:
             const auto& field = _fields[i];
 
             // Parse value
-            uint16_t* data = &_buffer[_buffer_positions[field.address]];
+            uint16_t* data = &_buffer[_buffer_positions[i]];
             float value = parse_value(data, field);
             _field_values[i] = value;
             _update_timestamps[i] = millis();
-
-            // Print debug output
-            //debug_print(field.description); debug_print(": "); debug_print(value); debug_println(field.unit);
         }
     }
 
@@ -117,18 +114,31 @@ public:
 private:
     size_t setup_buffer_map() {
         size_t buffer_size = 0;
+        auto tmp = std::map<uint16_t, size_t>();
 
         for(const Field& field : _fields) {
-            if (_buffer_positions.find(field.address) == _buffer_positions.end()) {
-                _buffer_positions[field.address] = buffer_size;
+            if (tmp.find(field.address) == tmp.end()) {
+                tmp[field.address] = buffer_size;
                 buffer_size += field.length();
             }
+        }
+
+        for(size_t i = 0; i < _fields.size(); i++) {
+            if (tmp.find(_fields[i].address) != tmp.end()) {
+                _buffer_positions[i] = tmp[_fields[i].address];
+            }
+             else {
+                halt();
+             }
+            
         }
 
         return buffer_size;
     }
 
     std::vector<Chunk> setup_chunks(const std::vector<Field>& fields) {
+        Serial.println("Setup chunks");
+
         std::vector<Chunk> chunks;
 
         if (fields.empty()) {
@@ -138,7 +148,7 @@ private:
         // TODO
         auto register_type = fields[0].register_type;
 
-        chunks.push_back({fields[0].address, fields[0].length(), _buffer_positions[fields[0].address], register_type});
+        chunks.emplace_back(fields[0].address, fields[0].length(), _buffer_positions[0], register_type);
 
         for (size_t i = 1; i < fields.size(); i++) {
             const Field& field = fields[i];
@@ -151,14 +161,13 @@ private:
             }
             // Start New Chunk
             else {
-                chunks.push_back({field.address, field.length(), _buffer_positions[field.address], register_type});
+                chunks.emplace_back(field.address, field.length(), _buffer_positions[i], register_type);
             }
         }
 
         #if DEBUG_PRINTS == true
         for (size_t i = 0; i < fields.size(); i++) {
-            const Field& field = fields[i];
-            debug_println("Field " + String(i) + ": buffer_pos " + String(_buffer_positions[field.address]));
+            debug_println("Field " + String(i) + ": buffer_pos " + String(_buffer_positions[i]));
         }
         for (size_t i = 0; i < chunks.size(); i++) {
             const Chunk& chunk = chunks[i];

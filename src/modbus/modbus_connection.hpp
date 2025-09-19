@@ -61,6 +61,10 @@ class ModbusConnection {
   public:
     ModbusRTU mb;
 
+    // Disable Copies
+    ModbusConnection(const ModbusConnection&) = delete;
+    ModbusConnection& operator=(const ModbusConnection&) = delete;
+
     ModbusConnection(int8_t RX, int8_t TX, int16_t RE_DE, uint16_t baud) : serial(SoftwareSerial(RX, TX)) {
         serial.begin(baud, SWSERIAL_8N1);
         mb.begin(&serial, RE_DE);
